@@ -108,14 +108,22 @@ const Dashboard = () => {
     // Prepare monthly data for chart
     const monthlyData = chartRecords.reduce((acc: any[], record: any) => {
         const date = new Date(record.recorded_at ?? record.created_at);
+        if (Number.isNaN(date.getTime())) {
+            return acc;
+        }
+
+        const year = date.getFullYear();
+        const monthIndex = date.getMonth();
+        const monthSort = Date.UTC(year, monthIndex, 1);
         const monthYear = date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 
-        const existing = acc.find((d) => d.month === monthYear);
+        const existing = acc.find((d) => d.monthSort === monthSort);
         if (existing) {
             existing.totalQuantity += toNumber(record.ending_qty);
         } else {
             acc.push({
                 month: monthYear,
+                monthSort,
                 totalQuantity: toNumber(record.ending_qty),
             });
         }
@@ -123,7 +131,7 @@ const Dashboard = () => {
     }, []);
 
     // Sort by date
-    monthlyData.sort((a: any, b: any) => new Date(a.month).getTime() - new Date(b.month).getTime());
+    monthlyData.sort((a: any, b: any) => a.monthSort - b.monthSort);
 
     const isLoading = itemsQuery.isLoading || recordsQuery.isLoading || allRecordsQuery.isLoading;
 
@@ -242,7 +250,7 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
-                        <Skeleton className="h-75 w-full" />
+                        <Skeleton className="h-72 w-full" />
                     ) : monthlyData.length > 0 && monthlyData.some((d: { totalQuantity: number }) => d.totalQuantity > 0) ? (
                         <ChartContainer
                             config={{
@@ -251,7 +259,7 @@ const Dashboard = () => {
                                     color: "var(--chart-1)",
                                 },
                             }}
-                            className="h-75 w-full">
+                            className="h-72 w-full">
                             <BarChart data={monthlyData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                                 <XAxis dataKey="month" className="text-xs" />
