@@ -1,7 +1,8 @@
-import { AuthProvider } from "@refinedev/core";
+import type { AuthProvider } from "@refinedev/core";
+
 import { supabaseClient } from "./supabase-client";
 
-const authProvider: AuthProvider = {
+export const authProvider: AuthProvider = {
   login: async ({ email, password, providerName }) => {
     // sign in with oauth
     try {
@@ -20,7 +21,6 @@ const authProvider: AuthProvider = {
         if (data?.url) {
           return {
             success: true,
-            redirectTo: "/",
           };
         }
       }
@@ -41,7 +41,7 @@ const authProvider: AuthProvider = {
       if (data?.user) {
         return {
           success: true,
-          redirectTo: "/",
+          redirectTo: "/dashboard",
         };
       }
     } catch (error: any) {
@@ -59,11 +59,32 @@ const authProvider: AuthProvider = {
       },
     };
   },
-  register: async ({ email, password }) => {
+  register: async (params) => {
+    const { email, password, name } = (params ?? {}) as {
+      email?: string;
+      password?: string;
+      name?: string;
+    };
+
+    if (!email || !password) {
+      return {
+        success: false,
+        error: {
+          message: "Register failed",
+          name: "Email and password are required",
+        },
+      };
+    }
+
     try {
       const { data, error } = await supabaseClient.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            name,
+          },
+        },
       });
 
       if (error) {
@@ -76,7 +97,6 @@ const authProvider: AuthProvider = {
       if (data) {
         return {
           success: true,
-          redirectTo: "/",
         };
       }
     } catch (error: any) {
@@ -96,12 +116,9 @@ const authProvider: AuthProvider = {
   },
   forgotPassword: async ({ email }) => {
     try {
-      const { data, error } = await supabaseClient.auth.resetPasswordForEmail(
-        email,
-        {
-          redirectTo: `${window.location.origin}/update-password`,
-        }
-      );
+      const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/update-password`,
+      });
 
       if (error) {
         return {
@@ -175,11 +192,16 @@ const authProvider: AuthProvider = {
 
     return {
       success: true,
-      redirectTo: "/",
+      redirectTo: "/login",
     };
   },
   onError: async (error) => {
-    console.error(error);
+    if (error?.code === "PGRST301" || error?.code === 401) {
+      return {
+        logout: true,
+      };
+    }
+
     return { error };
   },
   check: async () => {
@@ -203,7 +225,7 @@ const authProvider: AuthProvider = {
         authenticated: false,
         error: error || {
           message: "Check failed",
-          name: "Not authenticated",
+          name: "Session not found",
         },
         logout: true,
         redirectTo: "/login",
@@ -227,14 +249,14 @@ const authProvider: AuthProvider = {
     const { data } = await supabaseClient.auth.getUser();
 
     if (data?.user) {
+      const metadataName = (data.user.user_metadata as { name?: string } | undefined)?.name;
+
       return {
         ...data.user,
-        name: data.user.email,
+        name: metadataName || data.user.email,
       };
     }
 
     return null;
   },
 };
-
-export default authProvider;
