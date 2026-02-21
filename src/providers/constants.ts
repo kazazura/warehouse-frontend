@@ -1,3 +1,22 @@
-export const SUPABASE_URL = "https://iwdfzvfqbtokqetmbmbp.supabase.co";
-export const SUPABASE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTYzMDU2NzAxMCwiZXhwIjoxOTQ2MTQzMDEwfQ._gr6kXGkQBi9BM9dx5vKaNKYj_DJN1xlkarprGpM_fU";
+const getRequiredEnv = (key: "VITE_SUPABASE_URL" | "VITE_SUPABASE_KEY"): string => {
+  const viteValue =
+    typeof import.meta !== "undefined" && import.meta.env
+      ? import.meta.env[key]
+      : undefined;
+  const processValue =
+    typeof process !== "undefined" && process.env
+      ? process.env[key]
+      : undefined;
+  const value = viteValue ?? processValue;
+
+  if (!value) {
+    const message = `Missing required environment variable: ${key}. Add it to your .env file.`;
+    console.error(message);
+    throw new Error(message);
+  }
+
+  return value;
+};
+
+export const SUPABASE_URL = getRequiredEnv("VITE_SUPABASE_URL");
+export const SUPABASE_KEY = getRequiredEnv("VITE_SUPABASE_KEY");
