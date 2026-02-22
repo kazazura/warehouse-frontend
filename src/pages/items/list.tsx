@@ -75,7 +75,7 @@ const ItemList = () => {
                     accessorKey: "item_code",
                     size: 130,
                     header: () => (
-                        <p className="column-title ml-2 whitespace-normal break-words leading-tight sm:whitespace-nowrap">
+                        <p className="column-title ml-2 whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                             Item Code
                         </p>
                     ),
@@ -86,7 +86,7 @@ const ItemList = () => {
                     accessorKey: "description",
                     size: 350,
                     header: () => (
-                        <p className="column-title whitespace-normal break-words leading-tight sm:whitespace-nowrap">
+                        <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                             Description
                         </p>
                     ),
@@ -101,7 +101,7 @@ const ItemList = () => {
                     size: 120,
                     header: ({ column, table }) => (
                         <div className="column-title">
-                            <span className="whitespace-normal break-words leading-tight sm:whitespace-nowrap">Type</span>
+                            <span className="whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">Type</span>
                             <DataTableFilterCombobox
                                 column={column}
                                 table={table}
@@ -121,7 +121,7 @@ const ItemList = () => {
                     accessorKey: "starting_qty",
                     size: 130,
                     header: () => (
-                        <p className="column-title whitespace-normal break-words leading-tight sm:whitespace-nowrap">
+                        <p className="column-title whitespace-normal wrap-break-wordword leading-tight sm:whitespace-nowrap">
                             Starting Qty.
                         </p>
                     ),
