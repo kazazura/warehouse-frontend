@@ -1,6 +1,7 @@
 "use client";
 
 import type { BaseRecord, HttpError } from "@refinedev/core";
+import type { ReactNode } from "react";
 import type { UseTableReturnType } from "@refinedev/react-table";
 import type { Column } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
@@ -20,10 +21,12 @@ import { cn } from "@/lib/utils";
 
 type DataTableProps<TData extends BaseRecord> = {
   table: UseTableReturnType<TData, HttpError>;
+  bottomContent?: ReactNode;
 };
 
 export function DataTable<TData extends BaseRecord>({
   table,
+  bottomContent,
 }: DataTableProps<TData>) {
   const {
     reactTable: { getHeaderGroups, getRowModel, getAllColumns },
@@ -79,7 +82,14 @@ export function DataTable<TData extends BaseRecord>({
   }, [tableQuery.data?.data, pageSize]);
 
   return (
-    <div className={cn("flex", "flex-col", "flex-1", "gap-4")}>
+    <div
+      className={cn(
+        "flex",
+        "flex-col",
+        "flex-1",
+        bottomContent ? "gap-0" : "gap-4"
+      )}
+    >
       <div ref={tableContainerRef} className={cn("rounded-md", "border")}>
         <Table ref={tableRef} style={{ tableLayout: "fixed", width: "100%" }}>
           <TableHeader>
@@ -198,6 +208,7 @@ export function DataTable<TData extends BaseRecord>({
           </TableBody>
         </Table>
       </div>
+      {bottomContent}
       {!isLoading && getRowModel().rows?.length > 0 && (
         <DataTablePagination
           currentPage={currentPage}
@@ -279,8 +290,8 @@ export function getCommonStyles<TData>({
       isOverflowing.horizontal && isLastLeftPinnedColumn
         ? "-4px 0 4px -4px var(--border) inset"
         : isOverflowing.horizontal && isFirstRightPinnedColumn
-        ? "4px 0 4px -4px var(--border) inset"
-        : undefined,
+          ? "4px 0 4px -4px var(--border) inset"
+          : undefined,
     left:
       isOverflowing.horizontal && isPinned === "left"
         ? `${column.getStart("left")}px`
