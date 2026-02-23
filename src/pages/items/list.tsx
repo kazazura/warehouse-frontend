@@ -1,5 +1,5 @@
 import { ListView, ListViewHeader } from "@/components/refine-ui/views/list-view";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, FileSpreadsheet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -18,6 +18,14 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { CrudFilters, useList } from "@refinedev/core";
 import { ItemInventoryRow } from "@/types";
+import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { useItemImport } from "@/hooks/use-item-import";
+import { ItemImportPanel } from "@/components/items/item-import-panel";
 
 const MONTH_TO_NUMBER: Record<string, number> = {
     January: 1,
@@ -63,6 +71,9 @@ const ItemList = () => {
     const [selectedYear, setSelectedYear] = useState<string>(
         String(new Date().getFullYear())
     );
+    const [importDialogOpen, setImportDialogOpen] = useState(false);
+    const { importFile, setImportFile, handleDialogOpenChange, hasImportFile } =
+        useItemImport();
 
     const { result: yearsResult } = useList<ItemInventoryRow>({
         resource: "items_inventory_all",
@@ -262,6 +273,30 @@ const ItemList = () => {
                                 ))}
                             </SelectContent>
                         </Select>
+
+                        <Dialog
+                            open={importDialogOpen}
+                            onOpenChange={(isOpen) => {
+                                setImportDialogOpen(isOpen);
+                                handleDialogOpenChange(isOpen);
+                            }}
+                        >
+                            <DialogTrigger asChild>
+                                <Button type="button" variant="outline">
+                                    <FileSpreadsheet className="w-4 h-4" />
+                                    <span>Import Excel</span>
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-xl">
+                                <ItemImportPanel
+                                    file={importFile}
+                                    onFileChange={setImportFile}
+                                    onCancel={() => setImportDialogOpen(false)}
+                                    onContinue={() => setImportDialogOpen(false)}
+                                    continueDisabled={!hasImportFile}
+                                />
+                            </DialogContent>
+                        </Dialog>
 
                         <CreateButton>
                             <div className="flex items-center gap-2 font-semibold">
