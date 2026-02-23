@@ -34,6 +34,26 @@ const MONTH_TO_NUMBER: Record<string, number> = {
     December: 12,
 };
 
+const buildDateFilters = (
+    selectedYear: string,
+    selectedMonth: string
+): CrudFilters => {
+    const filters: CrudFilters = [];
+
+    if (selectedYear !== "all") {
+        filters.push({ field: "year", operator: "eq", value: Number(selectedYear) });
+    }
+
+    if (selectedMonth !== "all") {
+        const monthNumber = MONTH_TO_NUMBER[selectedMonth];
+        if (monthNumber) {
+            filters.push({ field: "month", operator: "eq", value: monthNumber });
+        }
+    }
+
+    return filters;
+};
+
 const ItemList = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
@@ -161,7 +181,10 @@ const ItemList = () => {
         refineCoreProps: {
             resource: "items_inventory_all",
             pagination: { pageSize: 10, mode: "server" },
-            filters: { mode: "server", initial: [] },
+            filters: {
+                mode: "server",
+                initial: buildDateFilters(selectedYear, selectedMonth),
+            },
             sorters: {},
         },
     });
@@ -176,23 +199,12 @@ const ItemList = () => {
     }, [searchQuery]);
 
     useEffect(() => {
-        const filters: CrudFilters = [];
+        const filters: CrudFilters = buildDateFilters(selectedYear, selectedMonth);
         const typeFilterValue = columnFilters.find(
             (filter) => filter.id === "type"
         )?.value;
         const selectedTypeFromColumn =
             typeof typeFilterValue === "string" ? typeFilterValue : undefined;
-
-        if (selectedYear !== "all") {
-            filters.push({ field: "year", operator: "eq", value: Number(selectedYear) });
-        }
-
-        if (selectedMonth !== "all") {
-            const monthNumber = MONTH_TO_NUMBER[selectedMonth];
-            if (monthNumber) {
-                filters.push({ field: "month", operator: "eq", value: monthNumber });
-            }
-        }
 
         if (selectedTypeFromColumn) {
             filters.push({ field: "type", operator: "eq", value: selectedTypeFromColumn });
