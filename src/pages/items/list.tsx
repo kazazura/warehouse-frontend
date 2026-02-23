@@ -134,7 +134,7 @@ const ItemList = () => {
                     accessorKey: "buffer_stock",
                     size: 130,
                     header: () => (
-                        <p className="column-title whitespace-normal break-words leading-tight sm:whitespace-nowrap">
+                        <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                             Buffer Stock
                         </p>
                     ),
@@ -147,7 +147,7 @@ const ItemList = () => {
                     accessorKey: "ending_qty",
                     size: 130,
                     header: () => (
-                        <p className="column-title whitespace-normal break-words leading-tight sm:whitespace-nowrap">
+                        <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                             Ending Qty.
                         </p>
                     ),
