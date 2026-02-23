@@ -55,6 +55,9 @@ const UploadWidget = ({
         if (validationError) {
             setError(validationError);
             onFileChange?.(null);
+            if (inputRef.current) {
+                inputRef.current.value = "";
+            }
             return;
         }
 

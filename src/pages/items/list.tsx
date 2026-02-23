@@ -291,8 +291,14 @@ const ItemList = () => {
                                 <ItemImportPanel
                                     file={importFile}
                                     onFileChange={setImportFile}
-                                    onCancel={() => setImportDialogOpen(false)}
-                                    onContinue={() => setImportDialogOpen(false)}
+                                    onCancel={() => {
+                                        handleDialogOpenChange(false);
+                                        setImportDialogOpen(false);
+                                    }}
+                                    onContinue={() => {
+                                        handleDialogOpenChange(false);
+                                        setImportDialogOpen(false);
+                                    }}
                                     continueDisabled={!hasImportFile}
                                 />
                             </DialogContent>

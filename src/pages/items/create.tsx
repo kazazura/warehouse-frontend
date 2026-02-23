@@ -77,11 +77,12 @@ const ItemCreate = () => {
             return;
         }
 
+        const startingQty = values.starting_qty ?? 0;
         const inventoryValues = {
             month: values.month,
             year: values.year,
-            starting_qty: values.starting_qty,
-            ending_qty: values.starting_qty ?? 0,
+            starting_qty: startingQty,
+            ending_qty: startingQty,
         };
 
         try {
@@ -144,7 +145,7 @@ const ItemCreate = () => {
                                     </p>
                                 ) : null}
 
-                                
+
                                 <FormField
                                     control={form.control}
                                     name="item_code"
