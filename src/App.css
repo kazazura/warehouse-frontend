@@ -37,6 +37,14 @@
     @apply flex flex-col gap-5 lg:flex-row justify-between space-y-4;
   }
 
+  .item-view {
+    @apply container mx-auto pb-8 px-2 sm:px-4;
+  }
+
+  .item-form-card {
+    @apply max-w-3xl gap-2 w-full mx-auto relative overflow-hidden border shadow-sm border-foreground/20;
+  }
+
 }
 
 :root {
