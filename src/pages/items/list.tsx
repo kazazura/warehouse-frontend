@@ -1,5 +1,5 @@
 import { ListView, ListViewHeader } from "@/components/refine-ui/views/list-view";
-import { Search } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -235,7 +235,7 @@ const ItemList = () => {
             <ListViewHeader title="Inventory Items" />
 
             <div className="intro-row">
-                <p>Manage and track all items in warehouse inventory</p>
+                <p className="text-muted-foreground">Manage and track all items in warehouse inventory</p>
                 <div className="actions-row">
                     <div className="search-field">
                         <Search className="search-icon" />
@@ -263,7 +263,13 @@ const ItemList = () => {
                             </SelectContent>
                         </Select>
 
-                        <CreateButton />
+                        <CreateButton>
+                            <div className="flex items-center gap-2 font-semibold">
+                                <Plus className="w-4 h-4" />
+                                <span>Add Item</span>
+                            </div>
+                        </CreateButton>
+
                     </div>
                 </div>
             </div>
