@@ -16,6 +16,7 @@ export type UserRow = {
     name?: string | null;
     first_name?: string | null;
     last_name?: string | null;
+    avatar_url?: string | null;
     full_name?: string | null;
     app_role?: string | null;
     role?: string | null;
