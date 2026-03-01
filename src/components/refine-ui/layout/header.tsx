@@ -86,36 +86,18 @@ function MobileHeader() {
 
       <div
         className={cn(
-          "whitespace-nowrap",
+          "pointer-events-none",
+          "absolute",
+          "left-1/2",
+          "-translate-x-1/2",
           "flex",
-          "flex-row",
-          "h-full",
           "items-center",
-          "justify-start",
           "gap-2",
-          "transition-discrete",
-          "duration-200",
-          {
-            "pl-3": !open,
-            "pl-5": open,
-          }
+          "whitespace-nowrap"
         )}
       >
-        <div>{title.icon}</div>
-        <h2
-          className={cn(
-            "text-sm",
-            "font-bold",
-            "transition-opacity",
-            "duration-200",
-            {
-              "opacity-0": !open,
-              "opacity-100": open,
-            }
-          )}
-        >
-          {title.text}
-        </h2>
+        <div className={cn("shrink-0")}>{title.icon}</div>
+        <h2 className={cn("text-sm", "font-bold")}>{title.text}</h2>
       </div>
 
       <ThemeToggle className={cn("h-8", "w-8")} />
