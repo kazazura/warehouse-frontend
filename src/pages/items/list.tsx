@@ -287,7 +287,7 @@ const ItemList = () => {
                                     <span>Import Excel</span>
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-xl">
+                            <DialogContent className="w-[calc(100vw-2rem)] max-w-xl p-4 sm:p-6">
                                 <ItemImportPanel
                                     file={importFile}
                                     onFileChange={setImportFile}
