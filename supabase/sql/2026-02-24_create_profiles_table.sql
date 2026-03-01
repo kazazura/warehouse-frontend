@@ -7,6 +7,7 @@ create table if not exists public.users (
   email text,
   first_name text,
   last_name text,
+  avatar_url text,
   role text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -16,6 +17,7 @@ alter table public.users add column if not exists email text;
 alter table public.users add column if not exists name text;
 alter table public.users add column if not exists first_name text;
 alter table public.users add column if not exists last_name text;
+alter table public.users add column if not exists avatar_url text;
 alter table public.users add column if not exists role text;
 alter table public.users add column if not exists created_at timestamptz;
 alter table public.users add column if not exists updated_at timestamptz;
@@ -175,6 +177,83 @@ on public.users
 for delete
 to authenticated
 using (true);
+
+-- Storage bucket and policies for user avatars.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'user-avatars',
+  'user-avatars',
+  true,
+  5242880,
+  array['image/png', 'image/jpeg', 'image/webp']
+)
+on conflict (id) do update
+set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "user_avatars_public_read" on storage.objects;
+drop policy if exists "user_avatars_admin_insert" on storage.objects;
+drop policy if exists "user_avatars_admin_update" on storage.objects;
+drop policy if exists "user_avatars_admin_delete" on storage.objects;
+
+create policy "user_avatars_public_read"
+on storage.objects
+for select
+to authenticated
+using (bucket_id = 'user-avatars');
+
+create policy "user_avatars_admin_insert"
+on storage.objects
+for insert
+to authenticated
+with check (
+  bucket_id = 'user-avatars'
+  and exists (
+    select 1
+    from public.users u
+    where u.id = auth.uid()
+      and lower(coalesce(u.role, 'user')) = 'admin'
+  )
+);
+
+create policy "user_avatars_admin_update"
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id = 'user-avatars'
+  and exists (
+    select 1
+    from public.users u
+    where u.id = auth.uid()
+      and lower(coalesce(u.role, 'user')) = 'admin'
+  )
+)
+with check (
+  bucket_id = 'user-avatars'
+  and exists (
+    select 1
+    from public.users u
+    where u.id = auth.uid()
+      and lower(coalesce(u.role, 'user')) = 'admin'
+  )
+);
+
+create policy "user_avatars_admin_delete"
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id = 'user-avatars'
+  and exists (
+    select 1
+    from public.users u
+    where u.id = auth.uid()
+      and lower(coalesce(u.role, 'user')) = 'admin'
+  )
+);
 
 -- Cleanup redundant columns from old profiles-based approach.
 alter table public.users drop column if exists full_name;
