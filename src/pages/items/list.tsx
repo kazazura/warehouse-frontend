@@ -1,7 +1,7 @@
 import { ListView, ListViewHeader } from "@/components/refine-ui/views/list-view";
 import { Search, Plus, FileSpreadsheet } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Select,
     SelectContent,
@@ -16,7 +16,7 @@ import { DataTableFilterCombobox } from "@/components/refine-ui/data-table/data-
 import { useTable } from "@refinedev/react-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { CrudFilters, useList } from "@refinedev/core";
+import { CrudFilters, useList, useNotification } from "@refinedev/core";
 import { ItemInventoryRow } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +42,41 @@ const MONTH_TO_NUMBER: Record<string, number> = {
     December: 12,
 };
 
+const ITEMS_LIST_FILTERS_STORAGE_KEY = "items-list-filters";
+
+type ItemsListPersistedFilters = {
+    selectedMonth: string;
+    selectedYear: string;
+    searchQuery: string;
+};
+
+const getDefaultMonth = () => new Date().toLocaleString("en-US", { month: "long" });
+const getDefaultYear = () => String(new Date().getFullYear());
+
+const readPersistedItemsFilters = (): ItemsListPersistedFilters | null => {
+    if (typeof window === "undefined") return null;
+
+    const raw = window.sessionStorage.getItem(ITEMS_LIST_FILTERS_STORAGE_KEY);
+    if (!raw) return null;
+
+    try {
+        const parsed = JSON.parse(raw) as Partial<ItemsListPersistedFilters>;
+        const monthValues = new Set(["all", ...MONTHS_OPTIONS.map((month) => month.value)]);
+        const selectedMonth = monthValues.has(parsed.selectedMonth ?? "")
+            ? (parsed.selectedMonth as string)
+            : getDefaultMonth();
+        const selectedYear =
+            typeof parsed.selectedYear === "string" && parsed.selectedYear.trim()
+                ? parsed.selectedYear
+                : getDefaultYear();
+        const searchQuery = typeof parsed.searchQuery === "string" ? parsed.searchQuery : "";
+
+        return { selectedMonth, selectedYear, searchQuery };
+    } catch {
+        return null;
+    }
+};
+
 const buildDateFilters = (
     selectedYear: string,
     selectedMonth: string
@@ -63,17 +98,41 @@ const buildDateFilters = (
 };
 
 const ItemList = () => {
-    const [searchQuery, setSearchQuery] = useState("");
+    const persistedFilters = readPersistedItemsFilters();
+    const [searchQuery, setSearchQuery] = useState(
+        persistedFilters?.searchQuery ?? ""
+    );
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
     const [selectedMonth, setSelectedMonth] = useState(() =>
-        new Date().toLocaleString("en-US", { month: "long" })
+        persistedFilters?.selectedMonth ?? getDefaultMonth()
     );
     const [selectedYear, setSelectedYear] = useState<string>(
-        String(new Date().getFullYear())
+        persistedFilters?.selectedYear ?? getDefaultYear()
     );
     const [importDialogOpen, setImportDialogOpen] = useState(false);
     const { importFile, setImportFile, handleDialogOpenChange, hasImportFile } =
         useItemImport();
+    const { open } = useNotification();
+
+    const handleCopyItemCode = useCallback(
+        async (itemCode: string) => {
+            try {
+                await navigator.clipboard.writeText(itemCode);
+                open?.({
+                    type: "success",
+                    message: "Item code copied",
+                    description: itemCode,
+                });
+            } catch {
+                open?.({
+                    type: "error",
+                    message: "Copy failed",
+                    description: "Could not copy item code to clipboard.",
+                });
+            }
+        },
+        [open]
+    );
 
     const { result: yearsResult } = useList<ItemInventoryRow>({
         resource: "items_inventory_all",
@@ -110,7 +169,18 @@ const ItemList = () => {
                             Item Code
                         </p>
                     ),
-                    cell: ({ getValue }) => <Badge>{getValue<string>()}</Badge>,
+                    cell: ({ getValue }) => {
+                        const itemCode = getValue<string>() ?? "-";
+                        return (
+                            <Badge
+                                title={`Click to copy: ${itemCode}`}
+                                className="cursor-pointer select-none"
+                                onClick={() => void handleCopyItemCode(itemCode)}
+                            >
+                                {itemCode}
+                            </Badge>
+                        );
+                    },
                 },
                 {
                     id: "description",
@@ -187,7 +257,7 @@ const ItemList = () => {
                     ),
                 },
             ],
-            [typeOptions]
+            [handleCopyItemCode, typeOptions]
         ),
         refineCoreProps: {
             resource: "items_inventory_all",
@@ -208,6 +278,19 @@ const ItemList = () => {
 
         return () => clearTimeout(timeoutId);
     }, [searchQuery]);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const payload: ItemsListPersistedFilters = {
+            selectedMonth,
+            selectedYear,
+            searchQuery,
+        };
+        window.sessionStorage.setItem(
+            ITEMS_LIST_FILTERS_STORAGE_KEY,
+            JSON.stringify(payload)
+        );
+    }, [searchQuery, selectedMonth, selectedYear]);
 
     useEffect(() => {
         const filters: CrudFilters = buildDateFilters(selectedYear, selectedMonth);
