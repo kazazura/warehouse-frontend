@@ -51,7 +51,7 @@ const ItemCreate = () => {
             description: "",
             type: "",
             buffer_stock: 0,
-            starting_qty: undefined,
+            starting_qty: 0,
             month: currentDate.getMonth() + 1,
             year: currentYear,
         },
