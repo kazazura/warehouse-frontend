@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { cloneElement, isValidElement, useMemo, useState } from "react";
 
 import {
   useGo,
@@ -26,7 +26,8 @@ import { InputPassword } from "@/components/refine-ui/form/input-password";
 import { cn } from "@/lib/utils";
 
 export const SignUpForm = () => {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -37,6 +38,20 @@ export const SignUpForm = () => {
   const go = useGo();
 
   const { title } = useRefineOptions();
+  const brandIcon = useMemo(() => {
+    if (!isValidElement<{ style?: React.CSSProperties; className?: string }>(title.icon)) {
+      return title.icon;
+    }
+
+    return cloneElement(title.icon, {
+      style: {
+        ...(title.icon.props.style || {}),
+        width: "52px",
+        height: "52px",
+      },
+      className: cn(title.icon.props.className, "h-13 w-13"),
+    });
+  }, [title.icon]);
 
   const { mutate: login } = useLogin();
   const { mutate: register } = useRegister();
@@ -55,9 +70,15 @@ export const SignUpForm = () => {
       return;
     }
 
+    const combinedName = [firstName.trim(), lastName.trim()]
+      .filter(Boolean)
+      .join(" ");
+
     register(
       {
-        name,
+        name: combinedName || undefined,
+        firstName,
+        lastName,
         email,
         password,
       },
@@ -119,14 +140,18 @@ export const SignUpForm = () => {
         "min-h-svh",
       )}
     >
-      <div className={cn("flex", "items-center", "justify-center", "gap-2")}>
-        {title.icon && (
-          <div
-            className={cn("text-foreground", "[&>svg]:w-12", "[&>svg]:h-12")}
-          >
-            {title.icon}
-          </div>
+      <div className={cn("flex", "items-center", "justify-center", "gap-3")}>
+        {brandIcon && (
+          <div className={cn("text-foreground", "shrink-0")}>{brandIcon}</div>
         )}
+        <div className={cn("text-left")}>
+          <p className={cn("text-xs", "uppercase", "tracking-[0.18em]", "text-muted-foreground")}>
+            Aleco
+          </p>
+          <p className={cn("text-xl", "font-semibold", "leading-none", "text-foreground")}>
+            Warehouse
+          </p>
+        </div>
       </div>
 
       <Card className={cn("sm:w-[456px]", "p-12", "mt-6")}>
@@ -152,15 +177,26 @@ export const SignUpForm = () => {
 
         <CardContent className={cn("px-0")}>
           <form onSubmit={handleSignUp}>
-            <div className={cn("flex", "flex-col", "gap-2")}>
-              <Label htmlFor="name">Name</Label>
+            <div className={cn("flex", "flex-col", "gap-2", "mt-6")}>
+              <Label htmlFor="firstName">First Name</Label>
               <Input
-                id="name"
+                id="firstName"
                 type="text"
                 placeholder=""
                 required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+            </div>
+
+            <div className={cn("flex", "flex-col", "gap-2", "mt-6")}>
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                type="text"
+                placeholder=""
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
               />
             </div>
 

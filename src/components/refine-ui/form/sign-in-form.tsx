@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { cloneElement, isValidElement, useMemo, useState } from "react";
 
 import { CircleHelp } from "lucide-react";
 
@@ -29,6 +29,20 @@ export const SignInForm = () => {
   const Link = useLink();
 
   const { title } = useRefineOptions();
+  const brandIcon = useMemo(() => {
+    if (!isValidElement<{ style?: React.CSSProperties; className?: string }>(title.icon)) {
+      return title.icon;
+    }
+
+    return cloneElement(title.icon, {
+      style: {
+        ...(title.icon.props.style || {}),
+        width: "52px",
+        height: "52px",
+      },
+      className: cn(title.icon.props.className, "h-13 w-13"),
+    });
+  }, [title.icon]);
 
   const { mutate: login } = useLogin();
 
@@ -65,14 +79,18 @@ export const SignInForm = () => {
         "min-h-svh",
       )}
     >
-      <div className={cn("flex", "items-center", "justify-center")}>
-        {title.icon && (
-          <div
-            className={cn("text-foreground", "[&>svg]:w-12", "[&>svg]:h-12")}
-          >
-            {title.icon}
-          </div>
+      <div className={cn("flex", "items-center", "justify-center", "gap-3")}>
+        {brandIcon && (
+          <div className={cn("text-foreground", "shrink-0")}>{brandIcon}</div>
         )}
+        <div className={cn("text-left")}>
+          <p className={cn("text-xs", "uppercase", "tracking-[0.18em]", "text-muted-foreground")}>
+            Aleco
+          </p>
+          <p className={cn("text-xl", "font-semibold", "leading-none", "text-foreground")}>
+            Warehouse
+          </p>
+        </div>
       </div>
 
       <Card className={cn("sm:w-[456px]", "p-12", "mt-6")}>

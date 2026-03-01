@@ -23,7 +23,7 @@ export const ItemImportPanel = ({
   showFooter = true,
 }: ItemImportPanelProps) => {
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       <div className="space-y-1">
         <h3 className="text-base font-semibold">{title}</h3>
         <p className="text-sm text-muted-foreground">{description}</p>
@@ -32,11 +32,11 @@ export const ItemImportPanel = ({
       <UploadWidget value={file} onFileChange={onFileChange} />
 
       {showFooter ? (
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button type="button" onClick={onContinue} disabled={continueDisabled}>
+          <Button type="button" onClick={onContinue} disabled={continueDisabled} className="w-full sm:w-auto">
             Continue
           </Button>
         </div>

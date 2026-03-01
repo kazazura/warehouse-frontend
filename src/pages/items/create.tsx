@@ -51,7 +51,7 @@ const ItemCreate = () => {
             description: "",
             type: "",
             buffer_stock: 0,
-            starting_qty: 0,
+            starting_qty: undefined,
             month: currentDate.getMonth() + 1,
             year: currentYear,
         },
@@ -145,6 +145,7 @@ const ItemCreate = () => {
                                     </p>
                                 ) : null}
 
+                                <Separator />
 
                                 <FormField
                                     control={form.control}
@@ -155,9 +156,8 @@ const ItemCreate = () => {
                                                 Item Code <span className="text-destructive">*</span>
                                             </FormLabel>
                                             <FormControl>
-                                                <Input placeholder="INV-××××××××" required autoComplete="off" {...field} />
+                                                <Input placeholder="INV-××××××××" autoComplete="off" {...field} />
                                             </FormControl>
-                                            <FormDescription>Unique item identifier.</FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -173,7 +173,7 @@ const ItemCreate = () => {
                                                     Type <span className="text-destructive">*</span>
                                                 </FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="" required autoComplete="off" {...field} />
+                                                    <Input placeholder="" autoComplete="off" {...field} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -218,7 +218,6 @@ const ItemCreate = () => {
                                                         ref={field.ref}
                                                     />
                                                 </FormControl>
-                                                <FormDescription>Starting quantity of each month.</FormDescription>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -293,7 +292,6 @@ const ItemCreate = () => {
                                                 <Textarea
                                                     placeholder="Describe the item and specification"
                                                     className="min-h-28"
-                                                    required
                                                     autoComplete="off"
                                                     {...field}
                                                 />

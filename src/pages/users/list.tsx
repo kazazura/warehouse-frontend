@@ -1,0 +1,502 @@
+import { ListView, ListViewHeader } from "@/components/refine-ui/views/list-view";
+import { Pencil, Plus, Search, ShieldCheck, Trash, User as UserIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CreateButton } from "@/components/refine-ui/buttons/create";
+import { useTable } from "@refinedev/react-table";
+import { ColumnDef } from "@tanstack/react-table";
+import { DataTable } from "@/components/refine-ui/data-table/data-table";
+import { Badge } from "@/components/ui/badge";
+import { UserRow } from "@/types";
+import { CrudFilters, useGetIdentity, useNotification, useUpdate } from "@refinedev/core";
+import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { supabaseClient } from "@/providers/supabase-client";
+
+const toDisplayName = (row: UserRow): string => {
+	const fullName =
+		row.name ??
+		[row.first_name, row.last_name].filter(Boolean).join(" ");
+
+	return fullName?.trim() || "-";
+};
+
+const toDisplayDate = (value?: string | null): string => {
+	if (!value) return "-";
+	const parsed = new Date(value);
+	if (Number.isNaN(parsed.getTime())) return "-";
+	return parsed.toLocaleDateString("en-US", {
+		year: "numeric",
+		month: "short",
+		day: "numeric",
+	});
+};
+
+const formatUserId = (id: string | number): string => {
+	const value = String(id);
+	if (value.length <= 12) return value;
+	return `${value.slice(0, 8)}...${value.slice(-4)}`;
+};
+
+const getRoleBadgeConfig = (roleValue?: string | null) => {
+	const normalizedRole = (roleValue || "user").toLowerCase();
+
+	if (normalizedRole === "admin") {
+		return {
+			label: "Admin",
+			icon: ShieldCheck,
+			className: "border-green-200 bg-green-50 text-green-700",
+		};
+	}
+
+	return {
+		label: normalizedRole || "User",
+		icon: UserIcon,
+		className: "border-blue-200 bg-blue-50 text-blue-700",
+	};
+};
+
+const UserList = () => {
+
+	const [searchQuery, setSearchQuery] = useState("");
+	const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+	const [editDialogOpen, setEditDialogOpen] = useState(false);
+	const [editingUser, setEditingUser] = useState<UserRow | null>(null);
+	const [editFirstName, setEditFirstName] = useState("");
+	const [editLastName, setEditLastName] = useState("");
+	const [editRole, setEditRole] = useState("");
+	const [deletingUserId, setDeletingUserId] = useState<string | number | null>(null);
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const [userToDelete, setUserToDelete] = useState<UserRow | null>(null);
+	const { mutate: updateUser, mutation } = useUpdate<UserRow>();
+	const isUpdatingUser = mutation.status === "pending";
+	const { open } = useNotification();
+	const { data: currentUser } = useGetIdentity<{ id?: string | number }>();
+	const currentUserId = String(currentUser?.id ?? "");
+	const lastSearchErrorRef = useRef<string | null>(null);
+
+	const openEditDialog = useCallback((user: UserRow) => {
+		setEditingUser(user);
+		setEditFirstName(user.first_name ?? "");
+		setEditLastName(user.last_name ?? "");
+		setEditRole(user.role ?? "user");
+		setEditDialogOpen(true);
+	}, []);
+
+	const handleSaveEdit = async () => {
+		if (!editingUser?.id) return;
+
+		const normalizedFirstName = editFirstName.trim();
+		const normalizedLastName = editLastName.trim();
+		const normalizedRole = editRole.trim().toLowerCase() || "user";
+		const name = [normalizedFirstName, normalizedLastName]
+			.filter(Boolean)
+			.join(" ");
+
+		updateUser(
+				{
+					resource: "users",
+					id: editingUser.id,
+					values: {
+						name: name || null,
+						first_name: normalizedFirstName || null,
+						last_name: normalizedLastName || null,
+						role: normalizedRole,
+					},
+				},
+			{
+				onSuccess: () => {
+					setEditDialogOpen(false);
+					setEditingUser(null);
+					userTable.refineCore.tableQuery.refetch();
+				},
+			}
+		);
+	};
+
+	const requestDeleteUser = useCallback((user: UserRow) => {
+		setUserToDelete(user);
+		setDeleteDialogOpen(true);
+	}, []);
+
+	const handleCopyUserId = useCallback(
+		async (fullId: string) => {
+			try {
+				await navigator.clipboard.writeText(fullId);
+				open?.({
+					type: "success",
+					message: "User ID copied",
+					description: fullId,
+				});
+			} catch {
+				open?.({
+					type: "error",
+					message: "Copy failed",
+					description: "Could not copy user ID to clipboard.",
+				});
+			}
+		},
+		[open]
+	);
+
+	const handleDeleteUser = async () => {
+		const user = userToDelete;
+		if (!user) return;
+
+		const targetId = String(user.id ?? "");
+		if (!targetId) return;
+		if (targetId === currentUserId) {
+			open?.({
+				type: "error",
+				message: "Action blocked",
+				description: "You cannot delete your own account.",
+			});
+			setDeleteDialogOpen(false);
+			setUserToDelete(null);
+			return;
+		}
+
+		setDeletingUserId(targetId);
+		const { error } = await supabaseClient.rpc("admin_delete_user", {
+			target_user_id: targetId,
+		});
+		setDeletingUserId(null);
+
+		if (error) {
+			open?.({
+				type: "error",
+				message: "Delete failed",
+				description: error.message,
+			});
+			return;
+		}
+
+		open?.({
+			type: "success",
+			message: "User deleted",
+			description: "The account has been removed and can no longer sign in.",
+		});
+		setDeleteDialogOpen(false);
+		setUserToDelete(null);
+		userTable.refineCore.tableQuery.refetch();
+	};
+
+	const userTable = useTable<UserRow>({
+		columns: useMemo<ColumnDef<UserRow>[]>(
+				() => [
+					{
+					id: "id",
+					accessorKey: "id",
+					size: 150,
+					header: () => <p className="column-title ml-2">User ID</p>,
+					cell: ({ row }) => {
+						const fullId = String(row.original.id ?? "-");
+						return (
+							<Badge
+								title={`Click to copy: ${fullId}`}
+								className="cursor-pointer select-none"
+								onClick={() => void handleCopyUserId(fullId)}
+							>
+								{formatUserId(fullId)}
+							</Badge>
+						);
+					},
+					},
+					{
+					id: "name",
+					accessorFn: (row) => toDisplayName(row),
+					size: 250,
+					header: () => <p className="column-title">Name</p>,
+					cell: ({ row }) => (
+						<span className="text-foreground">{toDisplayName(row.original)}</span>
+						),
+						filterFn: "includesString",
+					},
+					{
+					id: "email",
+					accessorFn: (row) => row.email ?? "",
+					size: 280,
+					header: () => <p className="column-title">Email</p>,
+					cell: ({ row }) => (
+						<span className="text-foreground">{row.original.email ?? "-"}</span>
+						),
+						filterFn: "includesString",
+					},
+					{
+					id: "role",
+					accessorFn: (row) => row.role ?? "",
+					size: 140,
+					header: () => <p className="column-title">Role</p>,
+					cell: ({ row }) => {
+						const role = row.original.role ?? "user";
+						const { icon: Icon, label, className } = getRoleBadgeConfig(role);
+
+						return (
+							<Badge variant="outline" className={className}>
+								<Icon className="h-3 w-3" />
+								<span className="capitalize">{label}</span>
+							</Badge>
+						);
+					},
+					filterFn: "includesString",
+					},
+					{
+					id: "created_at",
+					accessorFn: (row) => row.created_at ?? "",
+					size: 160,
+					header: () => <p className="column-title">Created</p>,
+					cell: ({ row }) => (
+						<span className="text-foreground">{toDisplayDate(row.original.created_at)}</span>
+						),
+					},
+					{
+					id: "actions",
+					size: 100,
+					header: () => <p className="column-title">Actions</p>,
+					enableSorting: false,
+					enableColumnFilter: false,
+					cell: ({ row }) => {
+						const isDeleting = deletingUserId === String(row.original.id ?? "");
+						const isCurrentUser = String(row.original.id ?? "") === currentUserId;
+						return (
+						<div className="flex items-center gap-2">
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() => openEditDialog(row.original)}
+								disabled={isDeleting}
+								title="Edit user"
+								className="h-8 w-8 p-0"
+							>
+								<Pencil className="h-4 w-4" />
+								<span className="sr-only">Edit</span>
+							</Button>
+							<Button
+								type="button"
+								variant="destructive"
+								size="sm"
+								onClick={() => requestDeleteUser(row.original)}
+								disabled={isDeleting || isCurrentUser}
+								title={isCurrentUser ? "You cannot delete your own account" : "Delete user"}
+								className="h-8 w-8 p-0"
+							>
+								<Trash className="h-4 w-4" />
+								<span className="sr-only">{isDeleting ? "Deleting user" : "Delete"}</span>
+							</Button>
+						</div>
+						);
+					},
+					},
+				],
+			[currentUserId, deletingUserId, handleCopyUserId, openEditDialog]
+			),
+		refineCoreProps: {
+			resource: "users",
+			pagination: { pageSize: 10, mode: "server" },
+			filters: {
+				mode: "server",
+				initial: [],
+			},
+			},
+		});
+	const searchableFields = useMemo(
+		() => ["email", "name", "first_name", "last_name"] as const,
+		[]
+	);
+
+	useEffect(() => {
+		const timeoutId = setTimeout(() => {
+			setDebouncedSearchQuery(searchQuery.trim());
+		}, 300);
+
+		return () => clearTimeout(timeoutId);
+	}, [searchQuery]);
+
+	useEffect(() => {
+		const filters: CrudFilters = [];
+
+		if (debouncedSearchQuery) {
+			const normalizedQuery = debouncedSearchQuery.trim().toLowerCase();
+			const roleTerms = new Set(["admin", "user"]);
+			const orConditions: CrudFilters[number]["value"] = searchableFields.map((field) => ({
+				field,
+				operator: "contains" as const,
+				value: debouncedSearchQuery,
+			}));
+
+			// Include role search only for explicit role terms to avoid noisy matches like "er" -> "user".
+			if (roleTerms.has(normalizedQuery)) {
+				orConditions.push({
+					field: "role",
+					operator: "eq",
+					value: normalizedQuery,
+				});
+			}
+
+			filters.push({
+				operator: "or",
+				value: orConditions,
+			});
+		}
+
+		userTable.refineCore.setFilters(filters, "replace");
+	}, [
+		debouncedSearchQuery,
+		searchableFields,
+		userTable.refineCore.setFilters,
+	]);
+
+	useEffect(() => {
+		const queryError = userTable.refineCore.tableQuery.error as { message?: string } | null;
+		const message = queryError?.message ?? null;
+		if (!message || message === lastSearchErrorRef.current) return;
+
+		lastSearchErrorRef.current = message;
+		open?.({
+			type: "error",
+			message: "User search failed",
+			description: message,
+		});
+	}, [open, userTable.refineCore.tableQuery.error]);
+
+	return (
+		<ListView>
+			<ListViewHeader title="Users" />
+
+			<div className="intro-row">
+				<p className="text-muted-foreground">Manage and track users in the system</p>
+				<div className="actions-row">
+					<div className="search-field">
+						<Search className="search-icon" />
+						<Input
+							type="text"
+							placeholder="Search user..."
+							className="pl-10 w-full"
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
+						/>
+					</div>
+
+					<div className="flex gap-2 w-full sm:w-auto">
+						<CreateButton>
+							<div className="flex items-center gap-2 font-semibold">
+								<Plus className="w-4 h-4" />
+								<span>Add User</span>
+							</div>
+						</CreateButton>
+					</div>
+				</div>
+			</div>
+
+			<DataTable table={userTable} />
+
+			<Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>Edit User</DialogTitle>
+						<DialogDescription>Update user details and role.</DialogDescription>
+					</DialogHeader>
+
+					<div className="grid gap-3">
+						<div className="grid gap-1.5">
+							<p className="text-sm font-medium">First Name</p>
+							<Input
+								value={editFirstName}
+								onChange={(e) => setEditFirstName(e.target.value)}
+								placeholder="First name"
+							/>
+						</div>
+						<div className="grid gap-1.5">
+							<p className="text-sm font-medium">Last Name</p>
+							<Input
+								value={editLastName}
+								onChange={(e) => setEditLastName(e.target.value)}
+								placeholder="Last name"
+							/>
+						</div>
+						<div className="grid gap-1.5">
+							<p className="text-sm font-medium">Role</p>
+							<Input
+								value={editRole}
+								onChange={(e) => setEditRole(e.target.value)}
+								placeholder="admin or user"
+							/>
+						</div>
+					</div>
+
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => setEditDialogOpen(false)}
+							disabled={isUpdatingUser}
+						>
+							Cancel
+						</Button>
+						<Button
+							type="button"
+							onClick={handleSaveEdit}
+							disabled={isUpdatingUser || !editingUser}
+						>
+							Save Changes
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			<Dialog
+				open={deleteDialogOpen}
+				onOpenChange={(openState) => {
+					setDeleteDialogOpen(openState);
+					if (!openState) setUserToDelete(null);
+				}}
+			>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>Delete User</DialogTitle>
+						<DialogDescription>
+							This will permanently delete the account and remove login access.
+						</DialogDescription>
+					</DialogHeader>
+
+					<div className="rounded-md border p-3 text-sm text-muted-foreground">
+						<p>Email: <span className="text-foreground">{userToDelete?.email ?? "-"}</span></p>
+						<p>ID: <span className="text-foreground">{formatUserId(String(userToDelete?.id ?? "-"))}</span></p>
+					</div>
+
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => {
+								setDeleteDialogOpen(false);
+								setUserToDelete(null);
+							}}
+							disabled={Boolean(deletingUserId)}
+						>
+							Cancel
+						</Button>
+						<Button
+							type="button"
+							variant="destructive"
+							onClick={() => void handleDeleteUser()}
+							disabled={Boolean(deletingUserId) || !userToDelete}
+						>
+							{deletingUserId ? "Deleting..." : "Delete User"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+		</ListView>
+	);
+};
+
+export default UserList;
