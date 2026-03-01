@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { cloneElement, isValidElement, useMemo, useState } from "react";
+import { ArrowLeft, CheckCircle2, CircleAlert } from "lucide-react";
 
 import { useForgotPassword, useRefineOptions, useLink } from "@refinedev/core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -18,18 +19,55 @@ import { cn } from "@/lib/utils";
 
 export const ForgotPasswordForm = () => {
   const [email, setEmail] = useState("");
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error";
+    title: string;
+    description: string;
+  } | null>(null);
 
   const Link = useLink();
 
   const { title } = useRefineOptions();
+  const brandIcon = useMemo(() => {
+    if (!isValidElement<{ style?: React.CSSProperties; className?: string }>(title.icon)) {
+      return title.icon;
+    }
 
-  const { mutate: forgotPassword } = useForgotPassword();
+    return cloneElement(title.icon, {
+      style: {
+        ...(title.icon.props.style || {}),
+        width: "52px",
+        height: "52px",
+      },
+      className: cn(title.icon.props.className, "h-13 w-13"),
+    });
+  }, [title.icon]);
+
+  const { mutate: forgotPassword, isPending } = useForgotPassword();
 
   const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setFeedback(null);
 
     forgotPassword({
       email,
+    }, {
+      onSuccess: () => {
+        setFeedback({
+          type: "success",
+          title: "Reset link sent",
+          description:
+            "If an account exists for this email, a password reset link has been sent.",
+        });
+      },
+      onError: (error) => {
+        setFeedback({
+          type: "error",
+          title: "Failed to send reset link",
+          description:
+            error?.message || "Please check the email and try again.",
+        });
+      },
     });
   };
 
@@ -45,14 +83,18 @@ export const ForgotPasswordForm = () => {
         "min-h-svh",
       )}
     >
-      <div className={cn("flex", "items-center", "justify-center", "gap-2")}>
-        {title.icon && (
-          <div
-            className={cn("text-foreground", "[&>svg]:w-12", "[&>svg]:h-12")}
-          >
-            {title.icon}
-          </div>
+      <div className={cn("flex", "items-center", "justify-center", "gap-3")}>
+        {brandIcon && (
+          <div className={cn("text-foreground", "shrink-0")}>{brandIcon}</div>
         )}
+        <div className={cn("text-left")}>
+          <p className={cn("text-xs", "uppercase", "tracking-[0.18em]", "text-muted-foreground")}>
+            Aleco
+          </p>
+          <p className={cn("text-xl", "font-semibold", "leading-none", "text-foreground")}>
+            Warehouse
+          </p>
+        </div>
       </div>
 
       <Card className={cn("sm:w-[456px]", "p-12", "mt-6")}>
@@ -87,9 +129,11 @@ export const ForgotPasswordForm = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className={cn("flex-1")}
+                  disabled={isPending}
                 />
                 <Button
                   type="submit"
+                  disabled={isPending}
                   className={cn(
                     "bg-blue-600",
                     "hover:bg-blue-700",
@@ -97,11 +141,26 @@ export const ForgotPasswordForm = () => {
                     "px-6",
                   )}
                 >
-                  Send
+                  {isPending ? "Sending..." : "Send"}
                 </Button>
               </div>
             </div>
           </form>
+
+          {feedback ? (
+            <Alert
+              className={cn("mt-4")}
+              variant={feedback.type === "error" ? "destructive" : "default"}
+            >
+              {feedback.type === "success" ? (
+                <CheckCircle2 className={cn("text-green-600")} />
+              ) : (
+                <CircleAlert />
+              )}
+              <AlertTitle>{feedback.title}</AlertTitle>
+              <AlertDescription>{feedback.description}</AlertDescription>
+            </Alert>
+          ) : null}
 
           <div className={cn("mt-8")}>
             <Link
