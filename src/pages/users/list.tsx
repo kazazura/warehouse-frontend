@@ -18,7 +18,17 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { supabaseClient } from "@/providers/supabase-client";
+import AvatarUploadWidget from "@/components/users/avatar-upload-widget";
+
+const USER_AVATAR_BUCKET = "user-avatars";
 
 const toDisplayName = (row: UserRow): string => {
 	const fullName =
@@ -72,6 +82,9 @@ const UserList = () => {
 	const [editFirstName, setEditFirstName] = useState("");
 	const [editLastName, setEditLastName] = useState("");
 	const [editRole, setEditRole] = useState("");
+	const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
+	const [editAvatarUrl, setEditAvatarUrl] = useState<string | null>(null);
+	const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 	const [deletingUserId, setDeletingUserId] = useState<string | number | null>(null);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [userToDelete, setUserToDelete] = useState<UserRow | null>(null);
@@ -86,7 +99,9 @@ const UserList = () => {
 		setEditingUser(user);
 		setEditFirstName(user.first_name ?? "");
 		setEditLastName(user.last_name ?? "");
-		setEditRole(user.role ?? "user");
+		setEditRole((user.role ?? "user").toLowerCase() === "admin" ? "admin" : "user");
+		setEditAvatarFile(null);
+		setEditAvatarUrl(user.avatar_url ?? null);
 		setEditDialogOpen(true);
 	}, []);
 
@@ -99,22 +114,60 @@ const UserList = () => {
 		const name = [normalizedFirstName, normalizedLastName]
 			.filter(Boolean)
 			.join(" ");
+		const userId = String(editingUser.id);
+		let nextAvatarUrl = editAvatarUrl;
+
+		if (editAvatarFile) {
+			const extension = editAvatarFile.name.split(".").pop()?.toLowerCase() || "jpg";
+			const avatarPath = `avatars/${userId}/avatar.${extension}`;
+
+			setIsUploadingAvatar(true);
+			const { error: uploadError } = await supabaseClient.storage
+				.from(USER_AVATAR_BUCKET)
+				.upload(avatarPath, editAvatarFile, {
+					upsert: true,
+					cacheControl: "3600",
+					contentType: editAvatarFile.type,
+				});
+			setIsUploadingAvatar(false);
+
+			if (uploadError) {
+				open?.({
+					type: "error",
+					message: "Avatar upload failed",
+					description: uploadError.message,
+				});
+				return;
+			}
+
+			const { data: publicUrlData } = supabaseClient.storage
+				.from(USER_AVATAR_BUCKET)
+				.getPublicUrl(avatarPath);
+			const basePublicUrl = publicUrlData.publicUrl;
+			const version = Date.now();
+			nextAvatarUrl = basePublicUrl.includes("?")
+				? `${basePublicUrl}&v=${version}`
+				: `${basePublicUrl}?v=${version}`;
+		}
 
 		updateUser(
-				{
-					resource: "users",
-					id: editingUser.id,
-					values: {
-						name: name || null,
-						first_name: normalizedFirstName || null,
-						last_name: normalizedLastName || null,
-						role: normalizedRole,
-					},
+			{
+				resource: "users",
+				id: editingUser.id,
+				values: {
+					name: name || null,
+					first_name: normalizedFirstName || null,
+					last_name: normalizedLastName || null,
+					role: normalizedRole,
+					avatar_url: nextAvatarUrl,
 				},
+			},
 			{
 				onSuccess: () => {
 					setEditDialogOpen(false);
 					setEditingUser(null);
+					setEditAvatarFile(null);
+					setEditAvatarUrl(null);
 					userTable.refineCore.tableQuery.refetch();
 				},
 			}
@@ -190,8 +243,8 @@ const UserList = () => {
 
 	const userTable = useTable<UserRow>({
 		columns: useMemo<ColumnDef<UserRow>[]>(
-				() => [
-					{
+			() => [
+				{
 					id: "id",
 					accessorKey: "id",
 					size: 150,
@@ -208,28 +261,28 @@ const UserList = () => {
 							</Badge>
 						);
 					},
-					},
-					{
+				},
+				{
 					id: "name",
 					accessorFn: (row) => toDisplayName(row),
 					size: 250,
 					header: () => <p className="column-title">Name</p>,
 					cell: ({ row }) => (
 						<span className="text-foreground">{toDisplayName(row.original)}</span>
-						),
-						filterFn: "includesString",
-					},
-					{
+					),
+					filterFn: "includesString",
+				},
+				{
 					id: "email",
 					accessorFn: (row) => row.email ?? "",
 					size: 280,
 					header: () => <p className="column-title">Email</p>,
 					cell: ({ row }) => (
 						<span className="text-foreground">{row.original.email ?? "-"}</span>
-						),
-						filterFn: "includesString",
-					},
-					{
+					),
+					filterFn: "includesString",
+				},
+				{
 					id: "role",
 					accessorFn: (row) => row.role ?? "",
 					size: 140,
@@ -246,17 +299,17 @@ const UserList = () => {
 						);
 					},
 					filterFn: "includesString",
-					},
-					{
+				},
+				{
 					id: "created_at",
 					accessorFn: (row) => row.created_at ?? "",
 					size: 160,
 					header: () => <p className="column-title">Created</p>,
 					cell: ({ row }) => (
 						<span className="text-foreground">{toDisplayDate(row.original.created_at)}</span>
-						),
-					},
-					{
+					),
+				},
+				{
 					id: "actions",
 					size: 100,
 					header: () => <p className="column-title">Actions</p>,
@@ -266,38 +319,38 @@ const UserList = () => {
 						const isDeleting = deletingUserId === String(row.original.id ?? "");
 						const isCurrentUser = String(row.original.id ?? "") === currentUserId;
 						return (
-						<div className="flex items-center gap-2">
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								onClick={() => openEditDialog(row.original)}
-								disabled={isDeleting}
-								title="Edit user"
-								className="h-8 w-8 p-0"
-							>
-								<Pencil className="h-4 w-4" />
-								<span className="sr-only">Edit</span>
-							</Button>
-							<Button
-								type="button"
-								variant="destructive"
-								size="sm"
-								onClick={() => requestDeleteUser(row.original)}
-								disabled={isDeleting || isCurrentUser}
-								title={isCurrentUser ? "You cannot delete your own account" : "Delete user"}
-								className="h-8 w-8 p-0"
-							>
-								<Trash className="h-4 w-4" />
-								<span className="sr-only">{isDeleting ? "Deleting user" : "Delete"}</span>
-							</Button>
-						</div>
+							<div className="flex items-center gap-2">
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									onClick={() => openEditDialog(row.original)}
+									disabled={isDeleting}
+									title="Edit user"
+									className="h-8 w-8 p-0"
+								>
+									<Pencil className="h-4 w-4" />
+									<span className="sr-only">Edit</span>
+								</Button>
+								<Button
+									type="button"
+									variant="destructive"
+									size="sm"
+									onClick={() => requestDeleteUser(row.original)}
+									disabled={isDeleting || isCurrentUser}
+									title={isCurrentUser ? "You cannot delete your own account" : "Delete user"}
+									className="h-8 w-8 p-0"
+								>
+									<Trash className="h-4 w-4" />
+									<span className="sr-only">{isDeleting ? "Deleting user" : "Delete"}</span>
+								</Button>
+							</div>
 						);
 					},
-					},
-				],
+				},
+			],
 			[currentUserId, deletingUserId, handleCopyUserId, openEditDialog]
-			),
+		),
 		refineCoreProps: {
 			resource: "users",
 			pagination: { pageSize: 10, mode: "server" },
@@ -305,8 +358,8 @@ const UserList = () => {
 				mode: "server",
 				initial: [],
 			},
-			},
-		});
+		},
+	});
 	const searchableFields = useMemo(
 		() => ["email", "name", "first_name", "last_name"] as const,
 		[]
@@ -398,7 +451,16 @@ const UserList = () => {
 
 			<DataTable table={userTable} />
 
-			<Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+			<Dialog
+				open={editDialogOpen}
+				onOpenChange={(openState) => {
+					setEditDialogOpen(openState);
+					if (!openState) {
+						setEditingUser(null);
+						setEditAvatarFile(null);
+					}
+				}}
+			>
 				<DialogContent className="sm:max-w-md">
 					<DialogHeader>
 						<DialogTitle>Edit User</DialogTitle>
@@ -406,6 +468,16 @@ const UserList = () => {
 					</DialogHeader>
 
 					<div className="grid gap-3">
+						<div className="grid gap-1.5">
+							<p className="text-center text-sm font-medium">Avatar</p>
+							<AvatarUploadWidget
+								value={editAvatarFile}
+								previewUrl={editAvatarUrl}
+								onFileChange={setEditAvatarFile}
+								onClearPreview={() => setEditAvatarUrl(null)}
+								disabled={isUpdatingUser || isUploadingAvatar}
+							/>
+						</div>
 						<div className="grid gap-1.5">
 							<p className="text-sm font-medium">First Name</p>
 							<Input
@@ -424,11 +496,15 @@ const UserList = () => {
 						</div>
 						<div className="grid gap-1.5">
 							<p className="text-sm font-medium">Role</p>
-							<Input
-								value={editRole}
-								onChange={(e) => setEditRole(e.target.value)}
-								placeholder="admin or user"
-							/>
+							<Select value={editRole || "user"} onValueChange={setEditRole}>
+								<SelectTrigger className="w-full">
+									<SelectValue placeholder="Select role" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="admin">Admin</SelectItem>
+									<SelectItem value="user">User</SelectItem>
+								</SelectContent>
+							</Select>
 						</div>
 					</div>
 
@@ -436,17 +512,20 @@ const UserList = () => {
 						<Button
 							type="button"
 							variant="outline"
-							onClick={() => setEditDialogOpen(false)}
-							disabled={isUpdatingUser}
+							onClick={() => {
+								setEditDialogOpen(false);
+								setEditAvatarFile(null);
+							}}
+							disabled={isUpdatingUser || isUploadingAvatar}
 						>
 							Cancel
 						</Button>
 						<Button
 							type="button"
 							onClick={handleSaveEdit}
-							disabled={isUpdatingUser || !editingUser}
+							disabled={isUpdatingUser || isUploadingAvatar || !editingUser}
 						>
-							Save Changes
+							{isUploadingAvatar ? "Uploading..." : "Save Changes"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
