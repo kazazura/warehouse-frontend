@@ -2,6 +2,14 @@ import type { AuthProvider } from "@refinedev/core";
 
 import { supabaseClient } from "./supabase-client";
 
+const normalizeAppRole = (value?: string | null): "admin" | "user" => {
+  if ((value ?? "").toLowerCase() === "admin") {
+    return "admin";
+  }
+
+  return "user";
+};
+
 export const authProvider: AuthProvider = {
   login: async ({ email, password, providerName }) => {
     // sign in with oauth
@@ -245,23 +253,60 @@ export const authProvider: AuthProvider = {
     };
   },
   getPermissions: async () => {
-    const user = await supabaseClient.auth.getUser();
+    const { data } = await supabaseClient.auth.getUser();
+    const currentUser = data.user;
 
-    if (user) {
-      return user.data.user?.role;
+    if (!currentUser) {
+      return null;
     }
 
-    return null;
+    const metadata = currentUser.user_metadata as { role?: string } | undefined;
+    const appMetadata = currentUser.app_metadata as { role?: string } | undefined;
+
+    const { data: dbUser } = await supabaseClient
+      .from("users")
+      .select("role")
+      .eq("id", currentUser.id)
+      .maybeSingle();
+
+    return normalizeAppRole(dbUser?.role ?? metadata?.role ?? appMetadata?.role);
   },
   getIdentity: async () => {
     const { data } = await supabaseClient.auth.getUser();
 
     if (data?.user) {
-      const metadataName = (data.user.user_metadata as { name?: string } | undefined)?.name;
+      const metadata = data.user.user_metadata as
+        | { name?: string; first_name?: string; last_name?: string; role?: string }
+        | undefined;
+      const appMetadata = data.user.app_metadata as { role?: string } | undefined;
+
+      const { data: dbUser } = await supabaseClient
+        .from("users")
+        .select("name,email,first_name,last_name,role,avatar_url")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      const firstName = dbUser?.first_name || metadata?.first_name || null;
+      const lastName = dbUser?.last_name || metadata?.last_name || null;
+      const fullName =
+        dbUser?.name ||
+        metadata?.name ||
+        [firstName, lastName].filter(Boolean).join(" ") ||
+        data.user.email;
+      const avatarUrl = dbUser?.avatar_url ?? null;
 
       return {
         ...data.user,
-        name: metadataName || data.user.email,
+        name: fullName,
+        email: dbUser?.email || data.user.email,
+        first_name: firstName,
+        last_name: lastName,
+        firstName,
+        lastName,
+        fullName,
+        avatar_url: avatarUrl,
+        avatar: avatarUrl,
+        role: normalizeAppRole(dbUser?.role ?? metadata?.role ?? appMetadata?.role),
       };
     }
 
