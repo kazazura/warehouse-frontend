@@ -60,11 +60,17 @@ export const authProvider: AuthProvider = {
     };
   },
   register: async (params) => {
-    const { email, password, name } = (params ?? {}) as {
+    const { email, password, name, firstName, lastName } = (params ?? {}) as {
       email?: string;
       password?: string;
       name?: string;
+      firstName?: string;
+      lastName?: string;
     };
+    const resolvedName =
+      name?.trim() ||
+      [firstName?.trim(), lastName?.trim()].filter(Boolean).join(" ") ||
+      undefined;
 
     if (!email || !password) {
       return {
@@ -82,7 +88,9 @@ export const authProvider: AuthProvider = {
         password,
         options: {
           data: {
-            name,
+            name: resolvedName,
+            first_name: firstName,
+            last_name: lastName,
           },
         },
       });
