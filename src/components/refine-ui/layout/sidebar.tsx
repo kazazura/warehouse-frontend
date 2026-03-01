@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import {
+  useGetIdentity,
   useLink,
   useMenu,
   useRefineOptions,
@@ -33,6 +34,12 @@ import React from "react";
 export function Sidebar() {
   const { open } = useShadcnSidebar();
   const { menuItems, selectedKey } = useMenu();
+  const { data: identity } = useGetIdentity<{ role?: string }>();
+  const isAdmin = (identity?.role ?? "").toLowerCase() === "admin";
+  const visibleMenuItems = React.useMemo(
+    () => menuItems.filter((item) => isAdmin || item.name !== "users"),
+    [isAdmin, menuItems]
+  );
 
   return (
     <ShadcnSidebar collapsible="icon" className={cn("border-none")}>
@@ -55,7 +62,7 @@ export function Sidebar() {
           }
         )}
       >
-        {menuItems.map((item: TreeMenuItem) => (
+        {visibleMenuItems.map((item: TreeMenuItem) => (
           <SidebarItem
             key={item.key || item.name}
             item={item}
@@ -232,6 +239,7 @@ function SidebarHeader() {
           "flex",
           "flex-row",
           "h-full",
+          "min-w-0",
           "items-center",
           "justify-start",
           "gap-2",
@@ -243,16 +251,20 @@ function SidebarHeader() {
           }
         )}
       >
-        <div>{title.icon}</div>
+        <div className={cn("shrink-0")}>{title.icon}</div>
         <h2
           className={cn(
             "text-sm",
             "font-bold",
-            "transition-opacity",
+            "overflow-hidden",
+            "whitespace-nowrap",
+            "transition-[opacity,max-width]",
             "duration-200",
             {
               "opacity-0": !open,
               "opacity-100": open,
+              "max-w-0": !open,
+              "max-w-[220px]": open,
             }
           )}
         >
@@ -261,11 +273,12 @@ function SidebarHeader() {
       </div>
 
       <ShadcnSidebarTrigger
-        className={cn("text-muted-foreground", "mr-1.5", {
+        className={cn("text-muted-foreground", "mr-1.5", "shrink-0", {
           "opacity-0": !open,
           "opacity-100": open || isMobile,
           "pointer-events-auto": open || isMobile,
           "pointer-events-none": !open && !isMobile,
+          "w-0 overflow-hidden mr-0 p-0": !open && !isMobile,
         })}
       />
     </ShadcnSidebarHeader>
