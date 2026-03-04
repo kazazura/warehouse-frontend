@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import {
   useActiveAuthProvider,
   useGetIdentity,
+  useLink,
   useOne,
   useLogout,
   useRefineOptions,
@@ -107,6 +108,7 @@ function MobileHeader() {
 
 const UserDropdown = () => {
   const { mutate: logout, isPending: isLoggingOut } = useLogout();
+  const Link = useLink();
   const { data: identity } = useGetIdentity<{
     id?: string | number;
     email?: string;
@@ -191,6 +193,12 @@ const UserDropdown = () => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/profile" className={cn("flex", "w-full", "items-center", "gap-2")}>
+            <UserIcon />
+            <span>View Profile</span>
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem
           variant="destructive"
           onClick={() => {

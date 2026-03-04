@@ -1,6 +1,6 @@
 import type { AuthProvider } from "@refinedev/core";
 
-import { supabaseClient } from "./supabase-client";
+import { setRememberSessionPreference, supabaseClient } from "./supabase-client";
 
 const normalizeAppRole = (value?: string | null): "admin" | "user" => {
   if ((value ?? "").toLowerCase() === "admin") {
@@ -11,10 +11,11 @@ const normalizeAppRole = (value?: string | null): "admin" | "user" => {
 };
 
 export const authProvider: AuthProvider = {
-  login: async ({ email, password, providerName }) => {
+  login: async ({ email, password, providerName, rememberMe }) => {
     // sign in with oauth
     try {
       if (providerName) {
+        setRememberSessionPreference(true);
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
           provider: providerName,
         });
@@ -34,6 +35,7 @@ export const authProvider: AuthProvider = {
       }
 
       // sign in with email and password
+      setRememberSessionPreference(Boolean(rememberMe));
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email,
         password,
