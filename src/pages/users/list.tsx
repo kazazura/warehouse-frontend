@@ -62,14 +62,14 @@ const getRoleBadgeConfig = (roleValue?: string | null) => {
 		return {
 			label: "Admin",
 			icon: ShieldCheck,
-			className: "border-green-200 bg-green-50 text-green-700",
+			className: "role-badge-admin",
 		};
 	}
 
 	return {
 		label: normalizedRole || "User",
 		icon: UserIcon,
-		className: "border-blue-200 bg-blue-50 text-blue-700",
+		className: "role-badge-user",
 	};
 };
 
@@ -467,15 +467,15 @@ const UserList = () => {
 					}
 				}}
 			>
-				<DialogContent className="sm:max-w-md">
-					<DialogHeader>
-						<DialogTitle>Edit User</DialogTitle>
+				<DialogContent className="sm:max-w-xl overflow-hidden p-0 border-border/80 shadow-sm">
+					<DialogHeader className="border-b px-6 py-5">
+						<DialogTitle className="text-2xl">Edit User</DialogTitle>
 						<DialogDescription>Update user details and role.</DialogDescription>
 					</DialogHeader>
 
-					<div className="grid gap-3">
-						<div className="grid gap-1.5">
-							<p className="text-center text-sm font-medium">Avatar</p>
+					<div className="grid gap-5 px-6 py-6">
+						<div className="grid gap-2">
+							<p className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">Profile Picture</p>
 							<AvatarUploadWidget
 								value={editAvatarFile}
 								previewUrl={editAvatarUrl}
@@ -484,37 +484,53 @@ const UserList = () => {
 								disabled={isUpdatingUser || isUploadingAvatar}
 							/>
 						</div>
-						<div className="grid gap-1.5">
-							<p className="text-sm font-medium">First Name</p>
-							<Input
-								value={editFirstName}
-								onChange={(e) => setEditFirstName(e.target.value)}
-								placeholder="First name"
-							/>
-						</div>
-						<div className="grid gap-1.5">
-							<p className="text-sm font-medium">Last Name</p>
-							<Input
-								value={editLastName}
-								onChange={(e) => setEditLastName(e.target.value)}
-								placeholder="Last name"
-							/>
-						</div>
-						<div className="grid gap-1.5">
-							<p className="text-sm font-medium">Role</p>
-							<Select value={editRole || "user"} onValueChange={setEditRole}>
-								<SelectTrigger className="w-full">
-									<SelectValue placeholder="Select role" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="admin">Admin</SelectItem>
-									<SelectItem value="user">User</SelectItem>
-								</SelectContent>
-							</Select>
+
+						<div className="grid gap-4 rounded-xl border border-border/80 bg-muted/10 p-4">
+							<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">User Details</p>
+							<div className="grid gap-4 sm:grid-cols-2">
+								<div className="grid gap-1.5">
+									<p className="text-sm font-medium">First Name</p>
+									<Input
+										value={editFirstName}
+										onChange={(e) => setEditFirstName(e.target.value)}
+										placeholder="First name"
+										className="bg-background"
+									/>
+								</div>
+								<div className="grid gap-1.5">
+									<p className="text-sm font-medium">Last Name</p>
+									<Input
+										value={editLastName}
+										onChange={(e) => setEditLastName(e.target.value)}
+										placeholder="Last name"
+										className="bg-background"
+									/>
+								</div>
+							</div>
+
+							<div className="grid gap-1.5">
+								<p className="text-sm font-medium">Role</p>
+								<Select value={editRole || "user"} onValueChange={setEditRole}>
+									<SelectTrigger className="h-11 w-full rounded-lg border-border/80 bg-background">
+										<SelectValue placeholder="Select role" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="admin">Admin</SelectItem>
+										<SelectItem value="user">User</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
 						</div>
 					</div>
 
-					<DialogFooter>
+					<DialogFooter className="items-center border-t px-6 py-4 sm:justify-end">
+						<p className="mr-auto text-left text-xs text-muted-foreground">
+							{isUploadingAvatar
+								? "Uploading avatar..."
+								: isUpdatingUser
+									? "Saving changes..."
+									: "Changes apply immediately."}
+						</p>
 						<Button
 							type="button"
 							variant="outline"

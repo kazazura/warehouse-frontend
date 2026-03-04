@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
+  CardFooter,
   CardHeader,
   CardTitle,
   CardDescription,
@@ -97,8 +98,8 @@ export const ForgotPasswordForm = () => {
         </div>
       </div>
 
-      <Card className={cn("sm:w-[456px]", "p-12", "mt-6")}>
-        <CardHeader className={cn("px-0")}>
+      <Card className={cn("sm:w-[456px]", "mt-6", "overflow-hidden", "border-border/80", "shadow-sm")}>
+        <CardHeader className={cn("border-b", "px-8", "py-6")}>
           <CardTitle
             className={cn(
               "text-blue-600",
@@ -116,9 +117,9 @@ export const ForgotPasswordForm = () => {
           </CardDescription>
         </CardHeader>
 
-        <CardContent className={cn("px-0")}>
+        <CardContent className={cn("px-8", "py-6")}>
           <form onSubmit={handleForgotPassword}>
-            <div className={cn("flex", "flex-col", "gap-2")}>
+            <div className={cn("flex", "flex-col", "gap-2", "rounded-lg", "border", "bg-muted/10", "p-3")}>
               <Label htmlFor="email">Email</Label>
               <div className={cn("flex", "gap-2")}>
                 <Input
@@ -168,25 +169,27 @@ export const ForgotPasswordForm = () => {
               <AlertDescription>{feedback.description}</AlertDescription>
             </Alert>
           ) : null}
-
-          <div className={cn("mt-8")}>
-            <Link
-              to="/login"
-              className={cn(
-                "inline-flex",
-                "items-center",
-                "gap-2",
-                "text-sm",
-                "text-muted-foreground",
-                "hover:text-foreground",
-                "transition-colors",
-              )}
-            >
-              <ArrowLeft className={cn("w-4", "h-4")} />
-              <span>Back</span>
-            </Link>
-          </div>
         </CardContent>
+        <CardFooter className={cn("justify-between", "border-t", "px-8", "py-4")}>
+          <span className={cn("text-xs", "text-muted-foreground")}>
+            Enter the email linked to your account.
+          </span>
+          <Link
+            to="/login"
+            className={cn(
+              "inline-flex",
+              "items-center",
+              "gap-2",
+              "text-sm",
+              "text-muted-foreground",
+              "hover:text-foreground",
+              "transition-colors",
+            )}
+          >
+            <ArrowLeft className={cn("w-4", "h-4")} />
+            <span>Back</span>
+          </Link>
+        </CardFooter>
       </Card>
     </div>
   );

@@ -11,6 +11,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -114,8 +115,8 @@ export const UpdatePasswordForm = () => {
         </div>
       </div>
 
-      <Card className={cn("sm:w-[456px]", "p-12", "mt-6")}>
-        <CardHeader className={cn("px-0")}>
+      <Card className={cn("sm:w-[456px]", "mt-6", "overflow-hidden", "border-border/80", "shadow-sm")}>
+        <CardHeader className={cn("border-b", "px-8", "py-6")}>
           <CardTitle
             className={cn(
               "text-blue-600",
@@ -131,29 +132,31 @@ export const UpdatePasswordForm = () => {
           </CardDescription>
         </CardHeader>
 
-        <CardContent className={cn("px-0")}>
+        <CardContent className={cn("px-8", "py-6")}>
           <form onSubmit={handleUpdatePassword} className={cn("space-y-4")}>
-            <div className={cn("flex", "flex-col", "gap-2")}>
-              <Label htmlFor="new-password">New Password</Label>
-              <InputPassword
-                id="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                disabled={isPending}
-              />
-            </div>
-            <div className={cn("flex", "flex-col", "gap-2")}>
-              <Label htmlFor="confirm-password">Confirm Password</Label>
-              <InputPassword
-                id="confirm-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                minLength={6}
-                disabled={isPending}
-              />
+            <div className={cn("rounded-lg", "border", "bg-muted/10", "p-3", "space-y-4")}>
+              <div className={cn("flex", "flex-col", "gap-2")}>
+                <Label htmlFor="new-password">New Password</Label>
+                <InputPassword
+                  id="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  disabled={isPending}
+                />
+              </div>
+              <div className={cn("flex", "flex-col", "gap-2")}>
+                <Label htmlFor="confirm-password">Confirm Password</Label>
+                <InputPassword
+                  id="confirm-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  disabled={isPending}
+                />
+              </div>
             </div>
 
             <Button type="submit" className={cn("w-full")} disabled={isPending}>
@@ -182,25 +185,27 @@ export const UpdatePasswordForm = () => {
               <AlertDescription>{feedback.description}</AlertDescription>
             </Alert>
           ) : null}
-
-          <div className={cn("mt-8")}>
-            <Link
-              to="/login"
-              className={cn(
-                "inline-flex",
-                "items-center",
-                "gap-2",
-                "text-sm",
-                "text-muted-foreground",
-                "hover:text-foreground",
-                "transition-colors",
-              )}
-            >
-              <ArrowLeft className={cn("w-4", "h-4")} />
-              <span>Back to sign in</span>
-            </Link>
-          </div>
         </CardContent>
+        <CardFooter className={cn("justify-between", "border-t", "px-8", "py-4")}>
+          <span className={cn("text-xs", "text-muted-foreground")}>
+            Use at least 6 characters for your new password.
+          </span>
+          <Link
+            to="/login"
+            className={cn(
+              "inline-flex",
+              "items-center",
+              "gap-2",
+              "text-sm",
+              "text-muted-foreground",
+              "hover:text-foreground",
+              "transition-colors",
+            )}
+          >
+            <ArrowLeft className={cn("w-4", "h-4")} />
+            <span>Back to sign in</span>
+          </Link>
+        </CardFooter>
       </Card>
     </div>
   );

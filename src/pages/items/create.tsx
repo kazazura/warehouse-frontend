@@ -1,6 +1,6 @@
 import { CreateView, CreateViewHeader } from "@/components/refine-ui/views/create-view";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Form,
     FormControl,
@@ -121,212 +121,226 @@ const ItemCreate = () => {
             <CreateViewHeader title="Add an Item" />
 
             <div className="my-4 flex items-center">
-                <Card className="item-form-card">
-                    {/* <CardHeader>
-                        <CardTitle className="text-2xl pb-0 font-semibold">Item Details</CardTitle>
+                <Card className="item-form-card gap-0 overflow-hidden border-border/80 shadow-sm">
+                    <CardHeader className="border-b">
+                        <CardTitle>Item Information</CardTitle>
+                        <CardDescription>
+                            Fill in item details and opening inventory values.
+                        </CardDescription>
                     </CardHeader>
-                    <Separator /> */}
 
-                    <CardContent className="mt-4">
+                    <CardContent className="pt-5">
                         <Form {...form}>
                             <form
                                 onSubmit={form.handleSubmit(onSubmit)}
                                 className="space-y-5"
                                 autoComplete="off"
                             >
-                                <ItemImportPanel
-                                    file={importFile}
-                                    onFileChange={setImportFile}
-                                    showFooter={false}
-                                />
-                                {fileSummary ? (
-                                    <p className="text-xs text-muted-foreground">
-                                        Selected file: {fileSummary.name} ({fileSummary.sizeLabel})
-                                    </p>
-                                ) : null}
+                                <div className="space-y-3">
+                                    <ItemImportPanel
+                                        file={importFile}
+                                        onFileChange={setImportFile}
+                                        showFooter={false}
+                                    />
+                                    {fileSummary ? (
+                                        <p className="text-xs text-muted-foreground">
+                                            Selected file: {fileSummary.name} ({fileSummary.sizeLabel})
+                                        </p>
+                                    ) : null}
+                                </div>
 
-                                <Separator />
-
-                                <FormField
-                                    control={form.control}
-                                    name="item_code"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>
-                                                Item Code <span className="text-destructive">*</span>
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="INV-××××××××" autoComplete="off" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="rounded-lg border bg-muted/10 p-3 space-y-4">
                                     <FormField
                                         control={form.control}
-                                        name="type"
+                                        name="item_code"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>
-                                                    Type <span className="text-destructive">*</span>
+                                                    Item Code <span className="text-destructive">*</span>
                                                 </FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="" autoComplete="off" {...field} />
+                                                    <Input placeholder="INV-××××××××" autoComplete="off" {...field} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
                                     />
 
-                                    <FormField
-                                        control={form.control}
-                                        name="buffer_stock"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Buffer Stock</FormLabel>
-                                                <FormControl>
-                                                    <Input type="number" min={0} step={1} autoComplete="off" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        <FormField
+                                            control={form.control}
+                                            name="type"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Type <span className="text-destructive">*</span>
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="" autoComplete="off" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="buffer_stock"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Buffer Stock</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="number" min={0} step={1} autoComplete="off" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className="grid items-start gap-4 sm:grid-cols-3">
+                                <div className="rounded-lg border bg-muted/10 p-3 space-y-4">
+                                    <div className="grid items-start gap-4 sm:grid-cols-3">
+                                        <FormField
+                                            control={form.control}
+                                            name="starting_qty"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Starting Quantity</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="number"
+                                                            min={0}
+                                                            step={1}
+                                                            autoComplete="off"
+                                                            value={field.value ?? ""}
+                                                            onChange={(event) => {
+                                                                const value = event.target.value;
+                                                                field.onChange(value === "" ? undefined : Number(value));
+                                                            }}
+                                                            onBlur={field.onBlur}
+                                                            name={field.name}
+                                                            ref={field.ref}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="month"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Month</FormLabel>
+                                                    <Select
+                                                        onValueChange={(value) => field.onChange(Number(value))}
+                                                        value={String(field.value)}
+                                                    >
+                                                        <FormControl>
+                                                            <SelectTrigger className="w-full">
+                                                                <SelectValue placeholder="Select month" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {monthOptions.map((month) => (
+                                                                <SelectItem key={month.value} value={String(month.value)}>
+                                                                    {month.label}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="year"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Year</FormLabel>
+                                                    <Select
+                                                        onValueChange={(value) => field.onChange(Number(value))}
+                                                        value={String(field.value)}
+                                                    >
+                                                        <FormControl>
+                                                            <SelectTrigger className="w-full">
+                                                                <SelectValue placeholder="Select year" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {yearOptions.map((year) => (
+                                                                <SelectItem key={year} value={String(year)}>
+                                                                    {year}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="rounded-lg border bg-muted/10 p-3">
                                     <FormField
                                         control={form.control}
-                                        name="starting_qty"
+                                        name="description"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Starting Quantity</FormLabel>
+                                                <FormLabel>
+                                                    Description <span className="text-destructive">*</span>
+                                                </FormLabel>
                                                 <FormControl>
-                                                    <Input
-                                                        type="number"
-                                                        min={0}
-                                                        step={1}
+                                                    <Textarea
+                                                        placeholder="Describe the item and specification"
+                                                        className="min-h-28"
                                                         autoComplete="off"
-                                                        value={field.value ?? ""}
-                                                        onChange={(event) => {
-                                                            const value = event.target.value;
-                                                            field.onChange(value === "" ? undefined : Number(value));
-                                                        }}
-                                                        onBlur={field.onBlur}
-                                                        name={field.name}
-                                                        ref={field.ref}
+                                                        {...field}
                                                     />
                                                 </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="month"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Month</FormLabel>
-                                                <Select
-                                                    onValueChange={(value) => field.onChange(Number(value))}
-                                                    value={String(field.value)}
-                                                >
-                                                    <FormControl>
-                                                        <SelectTrigger className="w-full">
-                                                            <SelectValue placeholder="Select month" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        {monthOptions.map((month) => (
-                                                            <SelectItem key={month.value} value={String(month.value)}>
-                                                                {month.label}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="year"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Year</FormLabel>
-                                                <Select
-                                                    onValueChange={(value) => field.onChange(Number(value))}
-                                                    value={String(field.value)}
-                                                >
-                                                    <FormControl>
-                                                        <SelectTrigger className="w-full">
-                                                            <SelectValue placeholder="Select year" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        {yearOptions.map((year) => (
-                                                            <SelectItem key={year} value={String(year)}>
-                                                                {year}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
+                                                <FormDescription>
+                                                    Add key specs and identifying details for easier tracking.
+                                                </FormDescription>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
                                     />
                                 </div>
 
-                                <FormField
-                                    control={form.control}
-                                    name="description"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>
-                                                Description <span className="text-destructive">*</span>
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Textarea
-                                                    placeholder="Describe the item and specification"
-                                                    className="min-h-28"
-                                                    autoComplete="off"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <Separator />
-
-                                <div className="flex justify-end gap-2">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() =>
-                                            go({
-                                                to: "/items",
-                                                type: "replace",
-                                            })
-                                        }
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button type="submit" disabled={mutation.isPending}>
-                                        {mutation.isPending ? (
-                                            <span className="inline-flex items-center gap-2">
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                Saving
-                                            </span>
-                                        ) : (
-                                            "Add Item"
-                                        )}
-                                    </Button>
-                                </div>
+                                <CardFooter className="justify-between border-t px-0 pt-5">
+                                    <p className="text-xs text-muted-foreground">
+                                        {mutation.isPending ? "Saving item..." : "Required fields are marked with *."}
+                                    </p>
+                                    <div className="flex justify-end gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() =>
+                                                go({
+                                                    to: "/items",
+                                                    type: "replace",
+                                                })
+                                            }
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button type="submit" disabled={mutation.isPending}>
+                                            {mutation.isPending ? (
+                                                <span className="inline-flex items-center gap-2">
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                    Saving
+                                                </span>
+                                            ) : (
+                                                "Add Item"
+                                            )}
+                                        </Button>
+                                    </div>
+                                </CardFooter>
                             </form>
                         </Form>
                     </CardContent>

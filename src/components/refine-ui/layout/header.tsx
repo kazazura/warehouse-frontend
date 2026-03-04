@@ -145,12 +145,12 @@ const UserDropdown = () => {
   const roleBadge = normalizedRole === "admin"
     ? {
         icon: ShieldCheck,
-        className: "border-green-200 bg-green-50 text-green-700",
+        className: "role-badge-admin",
         label: "Admin",
       }
     : {
         icon: UserIcon,
-        className: "border-blue-200 bg-blue-50 text-blue-700",
+        className: "role-badge-user",
         label: normalizedRole || "User",
       };
   const RoleIcon = roleBadge.icon;
