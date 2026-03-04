@@ -1,7 +1,7 @@
 "use client";
 
 import { cloneElement, isValidElement, useMemo, useState } from "react";
-import { ArrowLeft, CheckCircle2, CircleAlert } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CircleAlert, Loader2 } from "lucide-react";
 
 import { useForgotPassword, useRefineOptions, useLink } from "@refinedev/core";
 import { Button } from "@/components/ui/button";
@@ -141,7 +141,14 @@ export const ForgotPasswordForm = () => {
                     "px-6",
                   )}
                 >
-                  {isPending ? "Sending..." : "Send"}
+                  {isPending ? (
+                    <span className={cn("inline-flex", "items-center", "gap-2")}>
+                      <Loader2 className={cn("h-4", "w-4", "animate-spin")} />
+                      Sending
+                    </span>
+                  ) : (
+                    "Send"
+                  )}
                 </Button>
               </div>
             </div>

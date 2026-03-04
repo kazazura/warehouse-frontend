@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ShieldCheck, User as UserIcon } from "lucide-react";
+import { Home, Loader2, ShieldCheck, User as UserIcon } from "lucide-react";
 import { UserRow } from "@/types";
 import { cn } from "@/lib/utils";
 import AvatarUploadWidget from "@/components/users/avatar-upload-widget";
@@ -19,7 +19,6 @@ import {
 	BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
-import { Home } from "lucide-react";
 
 const USER_AVATAR_BUCKET = "user-avatars";
 
@@ -161,6 +160,7 @@ const ProfilePage = () => {
 						name: displayName || null,
 						avatar_url: nextAvatarUrl,
 					},
+					successNotification: false,
 				},
 				{
 					onSuccess: () => {
@@ -282,7 +282,14 @@ const ProfilePage = () => {
 
 							<div className="pt-2 flex justify-end">
 								<Button type="button" onClick={handleSave} disabled={isSaving || isUploadingAvatar || !userId}>
-									{isUploadingAvatar ? "Uploading..." : isSaving ? "Saving..." : "Save Changes"}
+									{isUploadingAvatar || isSaving ? (
+										<span className="inline-flex items-center gap-2">
+											<Loader2 className="h-4 w-4 animate-spin" />
+											{isUploadingAvatar ? "Uploading" : "Saving"}
+										</span>
+									) : (
+										"Save Changes"
+									)}
 								</Button>
 							</div>
 						</>

@@ -1,5 +1,5 @@
 import { ListView, ListViewHeader } from "@/components/refine-ui/views/list-view";
-import { Pencil, Plus, Search, ShieldCheck, Trash, User as UserIcon } from "lucide-react";
+import { Loader2, Pencil, Plus, Search, ShieldCheck, Trash, User as UserIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CreateButton } from "@/components/refine-ui/buttons/create";
@@ -161,6 +161,7 @@ const UserList = () => {
 					role: normalizedRole,
 					avatar_url: nextAvatarUrl,
 				},
+				successNotification: false,
 			},
 			{
 				onSuccess: () => {
@@ -168,6 +169,11 @@ const UserList = () => {
 					setEditingUser(null);
 					setEditAvatarFile(null);
 					setEditAvatarUrl(null);
+					open?.({
+						type: "success",
+						message: "User updated",
+						description: "User information has been saved.",
+					});
 					userTable.refineCore.tableQuery.refetch();
 				},
 			}
@@ -525,7 +531,14 @@ const UserList = () => {
 							onClick={handleSaveEdit}
 							disabled={isUpdatingUser || isUploadingAvatar || !editingUser}
 						>
-							{isUploadingAvatar ? "Uploading..." : "Save Changes"}
+							{isUploadingAvatar || isUpdatingUser ? (
+								<span className="inline-flex items-center gap-2">
+									<Loader2 className="h-4 w-4 animate-spin" />
+									{isUploadingAvatar ? "Uploading" : "Saving"}
+								</span>
+							) : (
+								"Save Changes"
+							)}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
@@ -569,7 +582,14 @@ const UserList = () => {
 							onClick={() => void handleDeleteUser()}
 							disabled={Boolean(deletingUserId) || !userToDelete}
 						>
-							{deletingUserId ? "Deleting..." : "Delete User"}
+							{deletingUserId ? (
+								<span className="inline-flex items-center gap-2">
+									<Loader2 className="h-4 w-4 animate-spin" />
+									Deleting
+								</span>
+							) : (
+								"Delete User"
+							)}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

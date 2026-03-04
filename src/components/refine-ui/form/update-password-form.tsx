@@ -1,7 +1,7 @@
 "use client";
 
 import { cloneElement, isValidElement, useMemo, useState } from "react";
-import { ArrowLeft, CheckCircle2, CircleAlert } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CircleAlert, Loader2 } from "lucide-react";
 
 import { useLink, useRefineOptions, useUpdatePassword } from "@refinedev/core";
 import { Button } from "@/components/ui/button";
@@ -157,7 +157,14 @@ export const UpdatePasswordForm = () => {
             </div>
 
             <Button type="submit" className={cn("w-full")} disabled={isPending}>
-              {isPending ? "Updating..." : "Update Password"}
+              {isPending ? (
+                <span className={cn("inline-flex", "items-center", "gap-2")}>
+                  <Loader2 className={cn("h-4", "w-4", "animate-spin")} />
+                  Updating
+                </span>
+              ) : (
+                "Update Password"
+              )}
             </Button>
           </form>
 

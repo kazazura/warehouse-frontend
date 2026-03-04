@@ -20,7 +20,7 @@ import {
   useLogout,
   useRefineOptions,
 } from "@refinedev/core";
-import { LogOutIcon, Mail, ShieldCheck, User as UserIcon } from "lucide-react";
+import { Loader2, LogOutIcon, Mail, ShieldCheck, User as UserIcon } from "lucide-react";
 
 export const Header = () => {
   const { isMobile } = useSidebar();
@@ -206,8 +206,17 @@ const UserDropdown = () => {
           }}
           className={cn("mt-1")}
         >
-          <LogOutIcon />
-          <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+          {isLoggingOut ? (
+            <>
+              <Loader2 className={cn("h-4", "w-4", "animate-spin")} />
+              <span>Logging out</span>
+            </>
+          ) : (
+            <>
+              <LogOutIcon />
+              <span>Logout</span>
+            </>
+          )}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
