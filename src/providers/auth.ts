@@ -3,315 +3,315 @@ import type { AuthProvider } from "@refinedev/core";
 import { setRememberSessionPreference, supabaseClient } from "./supabase-client";
 
 const normalizeAppRole = (value?: string | null): "admin" | "user" => {
-  if ((value ?? "").toLowerCase() === "admin") {
-    return "admin";
-  }
+	if ((value ?? "").toLowerCase() === "admin") {
+		return "admin";
+	}
 
-  return "user";
+	return "user";
 };
 
 export const authProvider: AuthProvider = {
-  login: async ({ email, password, providerName, rememberMe }) => {
-    // sign in with oauth
-    try {
-      if (providerName) {
-        setRememberSessionPreference(true);
-        const { data, error } = await supabaseClient.auth.signInWithOAuth({
-          provider: providerName,
-        });
+	login: async ({ email, password, providerName, rememberMe }) => {
+		// sign in with oauth
+		try {
+			if (providerName) {
+				setRememberSessionPreference(true);
+				const { data, error } = await supabaseClient.auth.signInWithOAuth({
+					provider: providerName,
+				});
 
-        if (error) {
-          return {
-            success: false,
-            error,
-          };
-        }
+				if (error) {
+					return {
+						success: false,
+						error,
+					};
+				}
 
-        if (data?.url) {
-          return {
-            success: true,
-          };
-        }
-      }
+				if (data?.url) {
+					return {
+						success: true,
+					};
+				}
+			}
 
-      // sign in with email and password
-      setRememberSessionPreference(Boolean(rememberMe));
-      const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password,
-      });
+			// sign in with email and password
+			setRememberSessionPreference(Boolean(rememberMe));
+			const { data, error } = await supabaseClient.auth.signInWithPassword({
+				email,
+				password,
+			});
 
-      if (error) {
-        return {
-          success: false,
-          error,
-        };
-      }
+			if (error) {
+				return {
+					success: false,
+					error,
+				};
+			}
 
-      if (data?.user) {
-        return {
-          success: true,
-          redirectTo: "/dashboard",
-        };
-      }
-    } catch (error: any) {
-      return {
-        success: false,
-        error,
-      };
-    }
+			if (data?.user) {
+				return {
+					success: true,
+					redirectTo: "/dashboard",
+				};
+			}
+		} catch (error: any) {
+			return {
+				success: false,
+				error,
+			};
+		}
 
-    return {
-      success: false,
-      error: {
-        message: "Login failed",
-        name: "Invalid email or password",
-      },
-    };
-  },
-  register: async (params) => {
-    const { email, password, name, firstName, lastName } = (params ?? {}) as {
-      email?: string;
-      password?: string;
-      name?: string;
-      firstName?: string;
-      lastName?: string;
-    };
-    const resolvedName =
-      name?.trim() ||
-      [firstName?.trim(), lastName?.trim()].filter(Boolean).join(" ") ||
-      undefined;
+		return {
+			success: false,
+			error: {
+				message: "Login failed",
+				name: "Invalid email or password",
+			},
+		};
+	},
+	register: async (params) => {
+		const { email, password, name, firstName, lastName } = (params ?? {}) as {
+			email?: string;
+			password?: string;
+			name?: string;
+			firstName?: string;
+			lastName?: string;
+		};
+		const resolvedName =
+			name?.trim() ||
+			[firstName?.trim(), lastName?.trim()].filter(Boolean).join(" ") ||
+			undefined;
 
-    if (!email || !password) {
-      return {
-        success: false,
-        error: {
-          message: "Register failed",
-          name: "Email and password are required",
-        },
-      };
-    }
+		if (!email || !password) {
+			return {
+				success: false,
+				error: {
+					message: "Register failed",
+					name: "Email and password are required",
+				},
+			};
+		}
 
-    try {
-      const { data, error } = await supabaseClient.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: resolvedName,
-            first_name: firstName,
-            last_name: lastName,
-          },
-        },
-      });
+		try {
+			const { data, error } = await supabaseClient.auth.signUp({
+				email,
+				password,
+				options: {
+					data: {
+						name: resolvedName,
+						first_name: firstName,
+						last_name: lastName,
+					},
+				},
+			});
 
-      if (error) {
-        return {
-          success: false,
-          error,
-        };
-      }
+			if (error) {
+				return {
+					success: false,
+					error,
+				};
+			}
 
-      if (data) {
-        return {
-          success: true,
-        };
-      }
-    } catch (error: any) {
-      return {
-        success: false,
-        error,
-      };
-    }
+			if (data) {
+				return {
+					success: true,
+				};
+			}
+		} catch (error: any) {
+			return {
+				success: false,
+				error,
+			};
+		}
 
-    return {
-      success: false,
-      error: {
-        message: "Register failed",
-        name: "Invalid email or password",
-      },
-    };
-  },
-  forgotPassword: async ({ email }) => {
-    try {
-      const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`,
-      });
+		return {
+			success: false,
+			error: {
+				message: "Register failed",
+				name: "Invalid email or password",
+			},
+		};
+	},
+	forgotPassword: async ({ email }) => {
+		try {
+			const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+				redirectTo: `${window.location.origin}/update-password`,
+			});
 
-      if (error) {
-        return {
-          success: false,
-          error,
-        };
-      }
+			if (error) {
+				return {
+					success: false,
+					error,
+				};
+			}
 
-      if (data) {
-        return {
-          success: true,
-        };
-      }
-    } catch (error: any) {
-      return {
-        success: false,
-        error,
-      };
-    }
+			if (data) {
+				return {
+					success: true,
+				};
+			}
+		} catch (error: any) {
+			return {
+				success: false,
+				error,
+			};
+		}
 
-    return {
-      success: false,
-      error: {
-        message: "Forgot password failed",
-        name: "Invalid email",
-      },
-    };
-  },
-  updatePassword: async ({ password }) => {
-    try {
-      const { data, error } = await supabaseClient.auth.updateUser({
-        password,
-      });
+		return {
+			success: false,
+			error: {
+				message: "Forgot password failed",
+				name: "Invalid email",
+			},
+		};
+	},
+	updatePassword: async ({ password }) => {
+		try {
+			const { data, error } = await supabaseClient.auth.updateUser({
+				password,
+			});
 
-      if (error) {
-        return {
-          success: false,
-          error,
-        };
-      }
+			if (error) {
+				return {
+					success: false,
+					error,
+				};
+			}
 
-      if (data) {
-        return {
-          success: true,
-          redirectTo: "/",
-        };
-      }
-    } catch (error: any) {
-      return {
-        success: false,
-        error,
-      };
-    }
-    return {
-      success: false,
-      error: {
-        message: "Update password failed",
-        name: "Invalid password",
-      },
-    };
-  },
-  logout: async () => {
-    const { error } = await supabaseClient.auth.signOut();
+			if (data) {
+				return {
+					success: true,
+					redirectTo: "/",
+				};
+			}
+		} catch (error: any) {
+			return {
+				success: false,
+				error,
+			};
+		}
+		return {
+			success: false,
+			error: {
+				message: "Update password failed",
+				name: "Invalid password",
+			},
+		};
+	},
+	logout: async () => {
+		const { error } = await supabaseClient.auth.signOut();
 
-    if (error) {
-      return {
-        success: false,
-        error,
-      };
-    }
+		if (error) {
+			return {
+				success: false,
+				error,
+			};
+		}
 
-    return {
-      success: true,
-      redirectTo: "/login",
-    };
-  },
-  onError: async (error) => {
-    if (error?.code === "PGRST301" || error?.code === 401) {
-      return {
-        logout: true,
-      };
-    }
+		return {
+			success: true,
+			redirectTo: "/login",
+		};
+	},
+	onError: async (error) => {
+		if (error?.code === "PGRST301" || error?.code === 401) {
+			return {
+				logout: true,
+			};
+		}
 
-    return { error };
-  },
-  check: async () => {
-    try {
-      const { data } = await supabaseClient.auth.getSession();
-      const { session } = data;
+		return { error };
+	},
+	check: async () => {
+		try {
+			const { data } = await supabaseClient.auth.getSession();
+			const { session } = data;
 
-      if (!session) {
-        return {
-          authenticated: false,
-          error: {
-            message: "Check failed",
-            name: "Session not found",
-          },
-          logout: true,
-          redirectTo: "/login",
-        };
-      }
-    } catch (error: any) {
-      return {
-        authenticated: false,
-        error: error || {
-          message: "Check failed",
-          name: "Session not found",
-        },
-        logout: true,
-        redirectTo: "/login",
-      };
-    }
+			if (!session) {
+				return {
+					authenticated: false,
+					error: {
+						message: "Check failed",
+						name: "Session not found",
+					},
+					logout: true,
+					redirectTo: "/login",
+				};
+			}
+		} catch (error: any) {
+			return {
+				authenticated: false,
+				error: error || {
+					message: "Check failed",
+					name: "Session not found",
+				},
+				logout: true,
+				redirectTo: "/login",
+			};
+		}
 
-    return {
-      authenticated: true,
-    };
-  },
-  getPermissions: async () => {
-    const { data } = await supabaseClient.auth.getUser();
-    const currentUser = data.user;
+		return {
+			authenticated: true,
+		};
+	},
+	getPermissions: async () => {
+		const { data } = await supabaseClient.auth.getUser();
+		const currentUser = data.user;
 
-    if (!currentUser) {
-      return null;
-    }
+		if (!currentUser) {
+			return null;
+		}
 
-    const metadata = currentUser.user_metadata as { role?: string } | undefined;
-    const appMetadata = currentUser.app_metadata as { role?: string } | undefined;
+		const metadata = currentUser.user_metadata as { role?: string } | undefined;
+		const appMetadata = currentUser.app_metadata as { role?: string } | undefined;
 
-    const { data: dbUser } = await supabaseClient
-      .from("users")
-      .select("role")
-      .eq("id", currentUser.id)
-      .maybeSingle();
+		const { data: dbUser } = await supabaseClient
+			.from("users")
+			.select("role")
+			.eq("id", currentUser.id)
+			.maybeSingle();
 
-    return normalizeAppRole(dbUser?.role ?? metadata?.role ?? appMetadata?.role);
-  },
-  getIdentity: async () => {
-    const { data } = await supabaseClient.auth.getUser();
+		return normalizeAppRole(dbUser?.role ?? metadata?.role ?? appMetadata?.role);
+	},
+	getIdentity: async () => {
+		const { data } = await supabaseClient.auth.getUser();
 
-    if (data?.user) {
-      const metadata = data.user.user_metadata as
-        | { name?: string; first_name?: string; last_name?: string; role?: string }
-        | undefined;
-      const appMetadata = data.user.app_metadata as { role?: string } | undefined;
+		if (data?.user) {
+			const metadata = data.user.user_metadata as
+				| { name?: string; first_name?: string; last_name?: string; role?: string }
+				| undefined;
+			const appMetadata = data.user.app_metadata as { role?: string } | undefined;
 
-      const { data: dbUser } = await supabaseClient
-        .from("users")
-        .select("name,email,first_name,last_name,role,avatar_url")
-        .eq("id", data.user.id)
-        .maybeSingle();
+			const { data: dbUser } = await supabaseClient
+				.from("users")
+				.select("name,email,first_name,last_name,role,avatar_url")
+				.eq("id", data.user.id)
+				.maybeSingle();
 
-      const firstName = dbUser?.first_name || metadata?.first_name || null;
-      const lastName = dbUser?.last_name || metadata?.last_name || null;
-      const fullName =
-        dbUser?.name ||
-        metadata?.name ||
-        [firstName, lastName].filter(Boolean).join(" ") ||
-        data.user.email;
-      const avatarUrl = dbUser?.avatar_url ?? null;
+			const firstName = dbUser?.first_name || metadata?.first_name || null;
+			const lastName = dbUser?.last_name || metadata?.last_name || null;
+			const fullName =
+				dbUser?.name ||
+				metadata?.name ||
+				[firstName, lastName].filter(Boolean).join(" ") ||
+				data.user.email;
+			const avatarUrl = dbUser?.avatar_url ?? null;
 
-      return {
-        ...data.user,
-        name: fullName,
-        email: dbUser?.email || data.user.email,
-        first_name: firstName,
-        last_name: lastName,
-        firstName,
-        lastName,
-        fullName,
-        avatar_url: avatarUrl,
-        avatar: avatarUrl,
-        role: normalizeAppRole(dbUser?.role ?? metadata?.role ?? appMetadata?.role),
-      };
-    }
+			return {
+				...data.user,
+				name: fullName,
+				email: dbUser?.email || data.user.email,
+				first_name: firstName,
+				last_name: lastName,
+				firstName,
+				lastName,
+				fullName,
+				avatar_url: avatarUrl,
+				avatar: avatarUrl,
+				role: normalizeAppRole(dbUser?.role ?? metadata?.role ?? appMetadata?.role),
+			};
+		}
 
-    return null;
-  },
+		return null;
+	},
 };
