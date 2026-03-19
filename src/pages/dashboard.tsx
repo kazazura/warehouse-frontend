@@ -1,6 +1,6 @@
 import { useList } from "@refinedev/core";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, AlertTriangle, TrendingUp, BarChart3 } from "lucide-react";
+import { AlertTriangle, TrendingUp, BarChart3, Package } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
@@ -36,27 +36,25 @@ const getRecordTimestamp = (record: any): number => {
     return -Infinity;
 };
 
+const getRecordTimestampForChart = (record: any): number => {
+    if (typeof record?.year === "number" && typeof record?.month === "number") {
+        return new Date(record.year, record.month - 1, 1).getTime();
+    }
+
+    const timestampSource = record?.recorded_at ?? record?.created_at;
+    const parsed = timestampSource ? new Date(timestampSource).getTime() : NaN;
+    if (Number.isFinite(parsed)) {
+        return parsed;
+    }
+
+    return -Infinity;
+};
+
 const Dashboard = () => {
     // Fetch all items
     const { query: itemsQuery } = useList({
         resource: "items",
         pagination: { mode: "off" },
-    });
-
-    // Fetch inventory records for the last 6 months
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-    const { query: recordsQuery } = useList({
-        resource: "inventory_records",
-        pagination: { mode: "off" },
-        filters: [
-            {
-                field: "recorded_at",
-                operator: "gte",
-                value: sixMonthsAgo.toISOString(),
-            },
-        ],
     });
 
     const { query: allRecordsQuery } = useList({
@@ -65,7 +63,6 @@ const Dashboard = () => {
     });
 
     const items = itemsQuery.data?.data || [];
-    const chartRecords = recordsQuery.data?.data || [];
     const allRecords = allRecordsQuery.data?.data || [];
 
     const latestRecordByItem = allRecords.reduce((acc: Map<string | number, any>, record: any) => {
@@ -91,7 +88,7 @@ const Dashboard = () => {
         const itemId = getItemIdFromItem(item);
         const latestRecord = itemId !== null ? latestRecordByItem.get(itemId) : null;
         const currentQuantity = latestRecord ? toNumber(latestRecord.ending_qty) : null;
-        const bufferStock = toNumber(item.buffer_stock);
+        const bufferStock = latestRecord ? toNumber(latestRecord.buffer_stock) : 0;
         if (bufferStock <= 0 || currentQuantity === null) {
             return false;
         }
@@ -105,35 +102,37 @@ const Dashboard = () => {
         return acc;
     }, {});
 
-    // Prepare monthly data for chart
-    const monthlyData = chartRecords.reduce((acc: any[], record: any) => {
-        const date = new Date(record.recorded_at ?? record.created_at);
-        if (Number.isNaN(date.getTime())) {
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startMonth = new Date(currentMonthStart);
+    startMonth.setMonth(startMonth.getMonth() - 5);
+
+    const monthBuckets = Array.from({ length: 6 }, (_, index) => {
+        const bucketDate = new Date(startMonth.getFullYear(), startMonth.getMonth() + index, 1);
+        const monthSort = Date.UTC(bucketDate.getFullYear(), bucketDate.getMonth(), 1);
+        return {
+            month: bucketDate.toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+            monthSort,
+            totalQuantity: 0,
+        };
+    });
+
+    const monthlyData = allRecords.reduce((acc: typeof monthBuckets, record: any) => {
+        const recordTime = getRecordTimestampForChart(record);
+        if (!Number.isFinite(recordTime)) {
             return acc;
         }
 
-        const year = date.getFullYear();
-        const monthIndex = date.getMonth();
-        const monthSort = Date.UTC(year, monthIndex, 1);
-        const monthYear = date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-
-        const existing = acc.find((d) => d.monthSort === monthSort);
-        if (existing) {
-            existing.totalQuantity += toNumber(record.ending_qty);
-        } else {
-            acc.push({
-                month: monthYear,
-                monthSort,
-                totalQuantity: toNumber(record.ending_qty),
-            });
+        const recordDate = new Date(recordTime);
+        const recordMonthSort = Date.UTC(recordDate.getFullYear(), recordDate.getMonth(), 1);
+        const bucket = acc.find((entry) => entry.monthSort === recordMonthSort);
+        if (bucket) {
+            bucket.totalQuantity += toNumber(record.ending_qty);
         }
         return acc;
-    }, []);
+    }, monthBuckets);
 
-    // Sort by date
-    monthlyData.sort((a: any, b: any) => a.monthSort - b.monthSort);
-
-    const isLoading = itemsQuery.isLoading || recordsQuery.isLoading || allRecordsQuery.isLoading;
+    const isLoading = itemsQuery.isLoading || allRecordsQuery.isLoading;
 
     return (
         <div className="space-y-6">
@@ -277,6 +276,7 @@ const Dashboard = () => {
                     )}
                 </CardContent>
             </Card>
+
         </div>
     );
 };
