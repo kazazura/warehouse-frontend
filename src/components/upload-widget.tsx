@@ -115,7 +115,7 @@ const UploadWidget = ({
             >
                 <div className="flex flex-col items-center gap-2">
                     <UploadCloud className="h-8 w-8 text-blue-500" />
-                    <p className="text-sm font-semibold text-blue-600">Click to upload Excel</p>
+                    <p className="text-sm font-semibold text-blue-600">Drag here or click to upload Excel</p>
                     <p className="text-xs text-muted-foreground">
                         XLSX, XLS, CSV up to {maxSizeMb}MB
                     </p>
