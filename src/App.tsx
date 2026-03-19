@@ -16,7 +16,7 @@ import { ThemeProvider } from "./components/refine-ui/theme/theme-provider";
 import { authProvider } from "./providers/auth";
 import { dataProvider } from "./providers/data";
 import { supabaseClient } from "./providers/supabase-client";
-import { Home, Package, Users, FileText } from "lucide-react";
+import { Home, Package, Users, FileText, ArrowLeftRight } from "lucide-react";
 import Dashboard from "./pages/dashboard";
 import { Layout } from "./components/refine-ui/layout/layout";
 import ItemList from "./pages/items/list";
@@ -28,6 +28,8 @@ import UpdatePasswordPage from "./pages/update-password";
 import UserList from "./pages/users/list";
 import UserCreate from "./pages/users/create";
 import ProfilePage from "./pages/profile";
+import ItemMovementListPage from "./pages/item-movements/list";
+import ItemMovementCreatePage from "./pages/item-movements/create";
 
 const isAdminRole = (role?: string | null) => (role ?? "").toLowerCase() === "admin";
 
@@ -84,6 +86,15 @@ function App() {
 								}
 							},
 							{
+								name: "item_movements",
+								list: "/item-movements",
+								create: "/item-movements/create",
+								meta: {
+									label: "Item Movement",
+									icon: <ArrowLeftRight className="w-4 h-4" />,
+								},
+							},
+							{
 								name: 'users',
 								list: '/users',
 								create: '/users/create',
@@ -131,6 +142,10 @@ function App() {
 								<Route path="items">
 									<Route index element={<ItemList />} />
 									<Route path="create" element={<ItemCreate />} />
+								</Route>
+								<Route path="item-movements">
+									<Route index element={<ItemMovementListPage />} />
+									<Route path="create" element={<ItemMovementCreatePage />} />
 								</Route>
 								<Route path="users" element={<AdminRouteGuard />}>
 									<Route index element={<UserList />} />
