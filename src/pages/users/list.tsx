@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { supabaseClient } from "@/providers/supabase-client";
 import AvatarUploadWidget from "@/components/users/avatar-upload-widget";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const USER_AVATAR_BUCKET = "user-avatars";
 
@@ -258,13 +259,19 @@ const UserList = () => {
 					cell: ({ row }) => {
 						const fullId = String(row.original.id ?? "-");
 						return (
-							<Badge
-								title={`Click to copy: ${fullId}`}
-								className="cursor-pointer select-none"
-								onClick={() => void handleCopyUserId(fullId)}
-							>
-								{formatUserId(fullId)}
-							</Badge>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Badge
+										className="cursor-pointer select-none"
+										onClick={() => void handleCopyUserId(fullId)}
+									>
+										{formatUserId(fullId)}
+									</Badge>
+								</TooltipTrigger>
+								<TooltipContent side="top" align="start" className="w-max max-w-[min(90vw,48rem)] whitespace-normal break-words">
+									{`Click to copy: ${fullId}`}
+								</TooltipContent>
+							</Tooltip>
 						);
 					},
 				},
