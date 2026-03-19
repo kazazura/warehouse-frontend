@@ -42,9 +42,16 @@ export const authProvider: AuthProvider = {
 			});
 
 			if (error) {
+				const message =
+					error.message?.toLowerCase().includes("invalid login credentials")
+						? "Invalid email or password."
+						: "Unable to sign in. Please try again.";
 				return {
 					success: false,
-					error,
+					error: {
+						name: "Sign in failed",
+						message,
+					},
 				};
 			}
 
