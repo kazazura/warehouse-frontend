@@ -2,7 +2,6 @@
 
 import type { PropsWithChildren } from "react";
 
-import { CreateButton } from "@/components/refine-ui/buttons/create";
 import { Breadcrumb } from "@/components/refine-ui/layout/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -38,9 +37,6 @@ export const ListViewHeader = ({
   const { resource, identifier } = useResourceParams({
     resource: resourceFromProps,
   });
-  const resourceName = identifier ?? resource?.name;
-
-  const isCreateButtonVisible = canCreate ?? !!resource?.create;
 
   const title =
     titleFromProps ??

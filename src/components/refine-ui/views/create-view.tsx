@@ -56,7 +56,7 @@ export const CreateViewHeader = ({
         <div className="bg-background z-[2] pr-4">
           <Breadcrumb />
         </div>
-        <Separator className={cn("absolute", "left-0", "right-0", "z-[1]")} />
+        <Separator className={cn("absolute", "left-4", "right-4", "z-[1]")} />
       </div>
       <div
         className={cn(
