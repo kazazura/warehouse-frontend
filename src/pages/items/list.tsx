@@ -161,7 +161,7 @@ const ItemList = () => {
             enabled: Boolean(identityId),
         },
     });
-    const normalizedRole = (userResult?.data?.role ?? identity?.role ?? "user").toLowerCase();
+    const normalizedRole = (userResult?.role ?? identity?.role ?? "user").toLowerCase();
     const isAdmin = normalizedRole === "admin";
     const { mutateAsync: updateRecord, mutation } = useUpdate({
         successNotification: false,
@@ -183,11 +183,11 @@ const ItemList = () => {
     }, []);
 
     const handleSaveEdit = useCallback(async () => {
-        if (!editingItemId) {
+        if (!editingItemId || !editingItem) {
             open?.({
                 type: "error",
                 message: "Update failed",
-                description: "Missing item identifier for this row.",
+                description: "Missing item details for this row.",
             });
             return;
         }
@@ -241,8 +241,8 @@ const ItemList = () => {
             setEditDialogOpen(false);
             setEditingItem(null);
             setEditingItemId(null);
-            itemTable.refineCore.setCurrent?.(1);
-            itemTable.refineCore.refetch?.();
+            itemTable.refineCore.setCurrentPage(1);
+            itemTable.refineCore.tableQuery.refetch();
             invalidate({
                 resource: "items_inventory_all",
                 invalidates: ["list"],
@@ -519,7 +519,7 @@ const ItemList = () => {
                 didNotifyFinal = true;
             }
 
-            itemTable.refineCore.refetch?.();
+            itemTable.refineCore.tableQuery.refetch();
         } catch (error) {
             open?.({
                 type: "error",
