@@ -18,14 +18,22 @@ import { ItemImportPanel } from "@/components/items/item-import-panel";
 import { useItemImport } from "@/hooks/use-item-import";
 import { itemCreateSchema, ItemCreateValues } from "@/lib/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCreate, useGo } from "@refinedev/core";
+import { useCreate, useGo, useNotification } from "@refinedev/core";
 import { Loader2 } from "lucide-react";
 import { useMemo } from "react";
 import { useForm } from "react-hook-form";
+import { useSearchParams } from "react-router";
 
 const ItemCreate = () => {
     const go = useGo();
-    const { mutateAsync: createRecord, mutation } = useCreate();
+    const [searchParams] = useSearchParams();
+    const returnTo = searchParams.get("returnTo");
+    const returnDirection = searchParams.get("direction");
+    const { open } = useNotification();
+    const { mutateAsync: createRecord, mutation } = useCreate({
+        successNotification: false,
+        errorNotification: false,
+    });
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     const { importFile, setImportFile, fileSummary } = useItemImport();
@@ -58,62 +66,86 @@ const ItemCreate = () => {
     });
 
     const onSubmit = async (values: ItemCreateValues) => {
-        const createdItem = await createRecord({
-            resource: "items",
-            values: {
-                item_code: values.item_code.trim(),
-                description: values.description.trim(),
-                type: values.type.trim(),
-                buffer_stock: values.buffer_stock,
-            },
-        });
+        try {
+            const createdItem = await createRecord({
+                resource: "items",
+                values: {
+                    item_code: values.item_code.trim(),
+                    description: values.description.trim(),
+                    type: values.type.trim(),
+                },
+            });
 
-        const itemId = createdItem?.data?.id;
-        if (itemId == null) {
+            const itemId = createdItem?.data?.id;
+            if (itemId == null) {
+                throw new Error("Item creation failed.");
+            }
+
+            const startingQty = values.starting_qty ?? 0;
+            const inventoryValues = {
+                month: values.month,
+                year: values.year,
+                starting_qty: startingQty,
+                ending_qty: startingQty,
+                buffer_stock: values.buffer_stock,
+            };
+
+            try {
+                await createRecord({
+                    resource: "inventory_records",
+                    values: {
+                        item_id: itemId,
+                        ...inventoryValues,
+                    },
+                });
+            } catch (error) {
+                const message =
+                    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+
+                if (message.includes("item_id")) {
+                    await createRecord({
+                        resource: "inventory_records",
+                        values: {
+                            inventory_item_id: itemId,
+                            ...inventoryValues,
+                        },
+                    });
+                } else {
+                    throw error;
+                }
+            }
+
+            open?.({
+                type: "success",
+                message: "Item created",
+                description: "Item details have been saved.",
+            });
+
+            if (returnTo) {
+                const params = new URLSearchParams();
+                params.set("selected_item_id", String(itemId));
+                if (returnDirection) {
+                    params.set("direction", returnDirection);
+                }
+                go({
+                    to: `${returnTo}?${params.toString()}`,
+                    type: "replace",
+                });
+                return;
+            }
+
             go({
                 to: "/items",
                 type: "replace",
             });
-            return;
-        }
-
-        const startingQty = values.starting_qty ?? 0;
-        const inventoryValues = {
-            month: values.month,
-            year: values.year,
-            starting_qty: startingQty,
-            ending_qty: startingQty,
-        };
-
-        try {
-            await createRecord({
-                resource: "inventory_records",
-                values: {
-                    item_id: itemId,
-                    ...inventoryValues,
-                },
-            });
         } catch (error) {
-            const message =
-                error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-
-            if (message.includes("item_id")) {
-                await createRecord({
-                    resource: "inventory_records",
-                    values: {
-                        inventory_item_id: itemId,
-                        ...inventoryValues,
-                    },
-                });
-            } else {
-                throw error;
-            }
+            const description = error instanceof Error ? error.message : "Unable to create item.";
+            open?.({
+                type: "error",
+                message: "Create failed",
+                description,
+            });
         }
-
-        go({
-            to: "/items",
-            type: "replace",
-        });
     };
 
     return (
@@ -149,6 +181,7 @@ const ItemCreate = () => {
                                     ) : null}
                                 </div>
 
+
                                 <div className="rounded-lg border bg-muted/10 p-3 space-y-4">
                                     <FormField
                                         control={form.control}
@@ -159,7 +192,12 @@ const ItemCreate = () => {
                                                     Item Code <span className="text-destructive">*</span>
                                                 </FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="INV-××××××××" autoComplete="off" {...field} />
+                                                <Input
+                                                    placeholder="INV-××××××××"
+                                                    autoComplete="off"
+                                                    value={field.value ?? ""}
+                                                    onChange={(event) => field.onChange(event.target.value.toUpperCase())}
+                                                />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -176,7 +214,12 @@ const ItemCreate = () => {
                                                         Type <span className="text-destructive">*</span>
                                                     </FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="" autoComplete="off" {...field} />
+                                                <Input
+                                                    placeholder=""
+                                                    autoComplete="off"
+                                                    value={field.value ?? ""}
+                                                    onChange={(event) => field.onChange(event.target.value.toUpperCase())}
+                                                />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -300,7 +343,8 @@ const ItemCreate = () => {
                                                         placeholder="Describe the item and specification"
                                                         className="min-h-28"
                                                         autoComplete="off"
-                                                        {...field}
+                                                        value={field.value ?? ""}
+                                                        onChange={(event) => field.onChange(event.target.value.toUpperCase())}
                                                     />
                                                 </FormControl>
                                                 <FormDescription>
