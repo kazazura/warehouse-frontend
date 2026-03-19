@@ -97,10 +97,12 @@ export function DataTable<TData extends BaseRecord>({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   const isPlaceholder = header.isPlaceholder;
-
+                  const headerMeta = header.column.columnDef
+                    ?.meta as DataTableColumnMeta | undefined;
                   return (
                     <TableHead
                       key={header.id}
+                      className={cn(headerMeta?.headerClassName)}
                       style={{
                         ...getCommonStyles({
                           column: header.column,
@@ -131,20 +133,30 @@ export function DataTable<TData extends BaseRecord>({
                       key={`skeleton-row-${rowIndex}`}
                       aria-hidden="true"
                     >
-                      {leafColumns.map((column) => (
-                        <TableCell
-                          key={`skeleton-cell-${rowIndex}-${column.id}`}
-                          style={{
-                            ...getCommonStyles({
-                              column,
-                              isOverflowing: isOverflowing,
-                            }),
-                          }}
-                          className={cn("truncate")}
-                        >
-                          <div className="h-8" />
-                        </TableCell>
-                      ))}
+                      {leafColumns.map((column) => {
+                        const cellMeta = column.columnDef
+                          ?.meta as DataTableColumnMeta | undefined;
+
+                        return (
+                          <TableCell
+                            key={`skeleton-cell-${rowIndex}-${column.id}`}
+                            style={{
+                              ...getCommonStyles({
+                                column,
+                                isOverflowing: isOverflowing,
+                              }),
+                            }}
+                            className={cn(cellMeta?.cellClassName)}
+                          >
+                            <div
+                              className={cn(
+                                "h-8",
+                                cellMeta?.cellInnerClassName
+                              )}
+                            />
+                          </TableCell>
+                        );
+                      })}
                     </TableRow>
                   )
                 )}
@@ -177,9 +189,12 @@ export function DataTable<TData extends BaseRecord>({
                     data-state={row.getIsSelected() && "selected"}
                   >
                     {row.getVisibleCells().map((cell) => {
+                      const cellMeta = cell.column.columnDef
+                        ?.meta as DataTableColumnMeta | undefined;
                       return (
                         <TableCell
                           key={cell.id}
+                          className={cn(cellMeta?.cellClassName)}
                           style={{
                             ...getCommonStyles({
                               column: cell.column,
@@ -187,7 +202,12 @@ export function DataTable<TData extends BaseRecord>({
                             }),
                           }}
                         >
-                          <div className="truncate">
+                          <div
+                            className={cn(
+                              "truncate",
+                              cellMeta?.cellInnerClassName
+                            )}
+                          >
                             {flexRender(
                               cell.column.columnDef.cell,
                               cell.getContext()
@@ -222,6 +242,12 @@ export function DataTable<TData extends BaseRecord>({
     </div>
   );
 }
+
+type DataTableColumnMeta = {
+  headerClassName?: string;
+  cellClassName?: string;
+  cellInnerClassName?: string;
+};
 
 function DataTableNoData({
   isOverflowing,
