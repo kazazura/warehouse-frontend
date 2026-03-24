@@ -333,7 +333,7 @@ const ItemList = () => {
                 {
                     id: "item_code",
                     accessorKey: "item_code",
-                    size: 130,
+                    size: 100,
                     header: () => (
                         <p className="column-title ml-2 whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                             Item Code
@@ -361,7 +361,7 @@ const ItemList = () => {
                 {
                     id: "description",
                     accessorKey: "description",
-                    size: 350,
+                    size: 400,
                     header: () => (
                         <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                             Description
@@ -375,7 +375,7 @@ const ItemList = () => {
                 {
                     id: "type",
                     accessorKey: "type",
-                    size: 100,
+                    size: 75,
                     header: ({ column, table }) => (
                         <div className="column-title">
                             <span className="whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">UOM</span>
@@ -396,7 +396,7 @@ const ItemList = () => {
                 {
                     id: "unit_cost",
                     accessorKey: "unit_cost",
-                    size: 120,
+                    size: 100,
                     header: () => (
                         <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                             Unit Cost
@@ -415,7 +415,7 @@ const ItemList = () => {
                 {
                     id: "starting_qty",
                     accessorKey: "starting_qty",
-                    size: 130,
+                    size: 100    ,
                     header: () => (
                         <p className="column-title whitespace-normal wrap-break-wordword leading-tight sm:whitespace-nowrap">
                             Starting Qty.
@@ -428,7 +428,7 @@ const ItemList = () => {
                 {
                     id: "buffer_stock",
                     accessorKey: "buffer_stock",
-                    size: 130,
+                    size: 100,
                     header: () => (
                         <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                             Buffer Stock
@@ -441,7 +441,7 @@ const ItemList = () => {
                 {
                     id: "ending_qty",
                     accessorKey: "ending_qty",
-                    size: 130,
+                    size: 100,
                     header: () => (
                         <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                             Ending Qty.
@@ -860,7 +860,7 @@ const ItemList = () => {
                                         className="bg-background"
                                     />
                                 </div>
-                                <div className="grid gap-1.5 sm:col-span-2">
+                                <div className="grid gap-1.5">
                                     <p className="text-sm font-medium">Ending Quantity</p>
                                     <Input
                                         type="number"
