@@ -1,13 +1,17 @@
 "use client";
 
 import { cloneElement, isValidElement, useMemo, useState } from "react";
-import { ArrowLeft, CheckCircle2, CircleAlert, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
-import { useForgotPassword, useRefineOptions, useLink } from "@refinedev/core";
+import {
+  useForgotPassword,
+  useRefineOptions,
+  useLink,
+  useNotification,
+} from "@refinedev/core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -16,15 +20,12 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 export const ForgotPasswordForm = () => {
   const [email, setEmail] = useState("");
-  const [feedback, setFeedback] = useState<{
-    type: "success" | "error";
-    title: string;
-    description: string;
-  } | null>(null);
+  const { open } = useNotification();
 
   const Link = useLink();
 
@@ -44,32 +45,37 @@ export const ForgotPasswordForm = () => {
     });
   }, [title.icon]);
 
-  const { mutate: forgotPassword, isPending } = useForgotPassword();
+  const { mutate: forgotPassword, isPending } = useForgotPassword({
+    successNotification: false,
+    errorNotification: false,
+  });
 
   const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setFeedback(null);
 
-    forgotPassword({
-      email,
-    }, {
-      onSuccess: () => {
-        setFeedback({
-          type: "success",
-          title: "Reset link sent",
-          description:
-            "If an account exists for this email, a password reset link has been sent.",
-        });
+    forgotPassword(
+      {
+        email,
       },
-      onError: (error) => {
-        setFeedback({
-          type: "error",
-          title: "Failed to send reset link",
-          description:
-            error?.message || "Please check the email and try again.",
-        });
+      {
+        onSuccess: () => {
+          open?.({
+            type: "success",
+            message: "Reset link sent",
+            description:
+              "If an account exists for this email, a password reset link has been sent.",
+          });
+        },
+        onError: (error) => {
+          open?.({
+            type: "error",
+            message: "Failed to send reset link",
+            description:
+              error?.message || "Please check the email and try again.",
+          });
+        },
       },
-    });
+    );
   };
 
   return (
@@ -98,8 +104,8 @@ export const ForgotPasswordForm = () => {
         </div>
       </div>
 
-      <Card className={cn("sm:w-[456px]", "mt-6", "overflow-hidden", "border-border/80", "shadow-sm")}>
-        <CardHeader className={cn("border-b", "px-8", "py-6")}>
+      <Card className={cn("sm:w-[456px]", "p-12", "mt-6")}>
+        <CardHeader className={cn("px-0")}>
           <CardTitle
             className={cn(
               "text-blue-600",
@@ -113,82 +119,66 @@ export const ForgotPasswordForm = () => {
           <CardDescription
             className={cn("text-muted-foreground", "font-medium")}
           >
-            Enter your email to change your password.
+            Enter your email to reset your password.
           </CardDescription>
         </CardHeader>
 
-        <CardContent className={cn("px-8", "py-6")}>
+        <Separator />
+
+        <CardContent className={cn("px-0")}>
           <form onSubmit={handleForgotPassword}>
-            <div className={cn("flex", "flex-col", "gap-2", "rounded-lg", "border", "bg-muted/10", "p-3")}>
+            <div className={cn("flex", "flex-col", "gap-2")}>
               <Label htmlFor="email">Email</Label>
-              <div className={cn("flex", "gap-2")}>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder=""
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={cn("flex-1")}
-                  disabled={isPending}
-                />
-                <Button
-                  type="submit"
-                  disabled={isPending}
-                  className={cn(
-                    "bg-blue-600",
-                    "hover:bg-blue-700",
-                    "text-white",
-                    "px-6",
-                  )}
-                >
-                  {isPending ? (
-                    <span className={cn("inline-flex", "items-center", "gap-2")}>
-                      <Loader2 className={cn("h-4", "w-4", "animate-spin")} />
-                      Sending
-                    </span>
-                  ) : (
-                    "Send"
-                  )}
-                </Button>
-              </div>
+              <Input
+                id="email"
+                type="email"
+                placeholder=""
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isPending}
+              />
             </div>
+            <Button
+              type="submit"
+              size="lg"
+              disabled={isPending}
+              className={cn("w-full", "mt-6")}
+            >
+              {isPending ? (
+                <span className={cn("inline-flex", "items-center", "gap-2")}>
+                  <Loader2 className={cn("h-4", "w-4", "animate-spin")} />
+                  Sending
+                </span>
+              ) : (
+                "Send reset link"
+              )}
+            </Button>
           </form>
 
-          {feedback ? (
-            <Alert
-              className={cn("mt-4")}
-              variant={feedback.type === "error" ? "destructive" : "default"}
-            >
-              {feedback.type === "success" ? (
-                <CheckCircle2 className={cn("text-green-600")} />
-              ) : (
-                <CircleAlert />
-              )}
-              <AlertTitle>{feedback.title}</AlertTitle>
-              <AlertDescription>{feedback.description}</AlertDescription>
-            </Alert>
-          ) : null}
         </CardContent>
-        <CardFooter className={cn("justify-between", "border-t", "px-8", "py-4")}>
-          <span className={cn("text-xs", "text-muted-foreground")}>
-            Enter the email linked to your account.
-          </span>
-          <Link
-            to="/login"
-            className={cn(
-              "inline-flex",
-              "items-center",
-              "gap-2",
-              "text-sm",
-              "text-muted-foreground",
-              "hover:text-foreground",
-              "transition-colors",
-            )}
-          >
-            <ArrowLeft className={cn("w-4", "h-4")} />
-            <span>Back</span>
-          </Link>
+        <Separator />
+
+        <CardFooter>
+          <div className={cn("w-full", "text-center text-sm")}>
+            <span className={cn("text-sm", "text-muted-foreground")}>
+              Remember your password?{" "}
+            </span>
+            <Link
+              to="/login"
+              className={cn(
+                "text-blue-600",
+                "dark:text-blue-400",
+                "font-semibold",
+                "underline",
+                "inline-flex",
+                "items-center",
+                "gap-2",
+              )}
+            >
+              Sign in
+            </Link>
+          </div>
         </CardFooter>
       </Card>
     </div>

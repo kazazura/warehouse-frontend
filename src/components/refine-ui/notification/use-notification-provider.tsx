@@ -12,6 +12,17 @@ export function useNotificationProvider(): NotificationProvider {
       undoableTimeout,
       cancelMutation,
     }) => {
+      const suppressedKeys = new Set([
+        "forgot-password-error",
+        "forgot-password-success",
+        "update-password-error",
+        "update-password-success",
+      ]);
+
+      if (key && suppressedKeys.has(key)) {
+        return;
+      }
+
       switch (type) {
         case "success":
           toast.success(message, {

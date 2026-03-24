@@ -1,12 +1,16 @@
 "use client";
 
 import { cloneElement, isValidElement, useMemo, useState } from "react";
-import { ArrowLeft, CheckCircle2, CircleAlert, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
-import { useLink, useRefineOptions, useUpdatePassword } from "@refinedev/core";
+import {
+  useLink,
+  useRefineOptions,
+  useUpdatePassword,
+  useNotification,
+} from "@refinedev/core";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -15,21 +19,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { InputPassword } from "@/components/refine-ui/form/input-password";
 import { cn } from "@/lib/utils";
 
 export const UpdatePasswordForm = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [feedback, setFeedback] = useState<{
-    type: "success" | "error";
-    title: string;
-    description: string;
-  } | null>(null);
+  const { open } = useNotification();
 
   const Link = useLink();
   const { title } = useRefineOptions();
-  const { mutate: updatePassword, isPending } = useUpdatePassword();
+  const { mutate: updatePassword, isPending } = useUpdatePassword({
+    successNotification: false,
+    errorNotification: false,
+  });
   const brandIcon = useMemo(() => {
     if (!isValidElement<{ style?: React.CSSProperties; className?: string }>(title.icon)) {
       return title.icon;
@@ -47,12 +51,11 @@ export const UpdatePasswordForm = () => {
 
   const handleUpdatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setFeedback(null);
 
     if (password !== confirmPassword) {
-      setFeedback({
+      open?.({
         type: "error",
-        title: "Password mismatch",
+        message: "Password mismatch",
         description: "Password and confirm password do not match.",
       });
       return;
@@ -63,25 +66,25 @@ export const UpdatePasswordForm = () => {
       {
         onSuccess: (result) => {
           if (result?.success) {
-            setFeedback({
+            open?.({
               type: "success",
-              title: "Password updated",
+              message: "Password updated",
               description: "Your password was updated successfully.",
             });
             return;
           }
 
-          setFeedback({
+          open?.({
             type: "error",
-            title: "Update failed",
+            message: "Update failed",
             description:
               result?.error?.message || "Could not update password. Please try again.",
           });
         },
         onError: (error) => {
-          setFeedback({
+          open?.({
             type: "error",
-            title: "Update failed",
+            message: "Update failed",
             description: error?.message || "Could not update password. Please try again.",
           });
         },
@@ -115,8 +118,8 @@ export const UpdatePasswordForm = () => {
         </div>
       </div>
 
-      <Card className={cn("sm:w-[456px]", "mt-6", "overflow-hidden", "border-border/80", "shadow-sm")}>
-        <CardHeader className={cn("border-b", "px-8", "py-6")}>
+      <Card className={cn("sm:w-[456px]", "p-12", "mt-6")}>
+        <CardHeader className={cn("px-0")}>
           <CardTitle
             className={cn(
               "text-blue-600",
@@ -132,79 +135,73 @@ export const UpdatePasswordForm = () => {
           </CardDescription>
         </CardHeader>
 
-        <CardContent className={cn("px-8", "py-6")}>
-          <form onSubmit={handleUpdatePassword} className={cn("space-y-4")}>
-            <div className={cn("rounded-lg", "border", "bg-muted/10", "p-3", "space-y-4")}>
-              <div className={cn("flex", "flex-col", "gap-2")}>
-                <Label htmlFor="new-password">New Password</Label>
-                <InputPassword
-                  id="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  disabled={isPending}
-                />
-              </div>
-              <div className={cn("flex", "flex-col", "gap-2")}>
-                <Label htmlFor="confirm-password">Confirm Password</Label>
-                <InputPassword
-                  id="confirm-password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  disabled={isPending}
-                />
-              </div>
+        <Separator />
+
+        <CardContent className={cn("px-0")}>
+          <form onSubmit={handleUpdatePassword}>
+            <div className={cn("flex", "flex-col", "gap-2")}>
+              <Label htmlFor="new-password">New Password</Label>
+              <InputPassword
+                id="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                disabled={isPending}
+              />
+            </div>
+            <div className={cn("flex", "flex-col", "gap-2", "mt-6")}>
+              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <InputPassword
+                id="confirm-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={6}
+                disabled={isPending}
+              />
             </div>
 
-            <Button type="submit" className={cn("w-full")} disabled={isPending}>
+            <Button
+              type="submit"
+              size="lg"
+              className={cn("w-full", "mt-6")}
+              disabled={isPending}
+            >
               {isPending ? (
                 <span className={cn("inline-flex", "items-center", "gap-2")}>
                   <Loader2 className={cn("h-4", "w-4", "animate-spin")} />
                   Updating
                 </span>
               ) : (
-                "Update Password"
+                "Update password"
               )}
             </Button>
           </form>
 
-          {feedback ? (
-            <Alert
-              className={cn("mt-4")}
-              variant={feedback.type === "error" ? "destructive" : "default"}
-            >
-              {feedback.type === "success" ? (
-                <CheckCircle2 className={cn("text-green-600")} />
-              ) : (
-                <CircleAlert />
-              )}
-              <AlertTitle>{feedback.title}</AlertTitle>
-              <AlertDescription>{feedback.description}</AlertDescription>
-            </Alert>
-          ) : null}
         </CardContent>
-        <CardFooter className={cn("justify-between", "border-t", "px-8", "py-4")}>
-          <span className={cn("text-xs", "text-muted-foreground")}>
-            Use at least 6 characters for your new password.
-          </span>
-          <Link
-            to="/login"
-            className={cn(
-              "inline-flex",
-              "items-center",
-              "gap-2",
-              "text-sm",
-              "text-muted-foreground",
-              "hover:text-foreground",
-              "transition-colors",
-            )}
-          >
-            <ArrowLeft className={cn("w-4", "h-4")} />
-            <span>Back to sign in</span>
-          </Link>
+        <Separator />
+
+        <CardFooter>
+          <div className={cn("w-full", "text-center text-sm")}>
+            <span className={cn("text-sm", "text-muted-foreground")}>
+              Remember your password?{" "}
+            </span>
+            <Link
+              to="/login"
+              className={cn(
+                "text-blue-600",
+                "dark:text-blue-400",
+                "font-semibold",
+                "underline",
+                "inline-flex",
+                "items-center",
+                "gap-2",
+              )}
+            >
+              Sign in
+            </Link>
+          </div>
         </CardFooter>
       </Card>
     </div>
