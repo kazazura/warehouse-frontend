@@ -145,6 +145,7 @@ const ItemList = () => {
     const [editDescription, setEditDescription] = useState("");
     const [editType, setEditType] = useState("");
     const [editBufferStock, setEditBufferStock] = useState<number | "">("");
+    const [editUnitCost, setEditUnitCost] = useState<number | "">("");
     const [editStartingQty, setEditStartingQty] = useState<number | "">("");
     const [editEndingQty, setEditEndingQty] = useState<number | "">("");
     const [isRolloverRunning, setIsRolloverRunning] = useState(false);
@@ -177,6 +178,7 @@ const ItemList = () => {
         setEditDescription(item.description ?? "");
         setEditType(item.type ?? "");
         setEditBufferStock(item.buffer_stock ?? 0);
+        setEditUnitCost(item.unit_cost ?? 0);
         setEditStartingQty(item.starting_qty ?? 0);
         setEditEndingQty(item.ending_qty ?? 0);
         setEditDialogOpen(true);
@@ -216,12 +218,14 @@ const ItemList = () => {
                 const nextStartingQty = editStartingQty === "" ? null : Number(editStartingQty);
                 const nextEndingQty = editEndingQty === "" ? null : Number(editEndingQty);
                 const nextBufferStock = editBufferStock === "" ? null : Number(editBufferStock);
+                const nextUnitCost = editUnitCost === "" ? null : Number(editUnitCost);
                 const { error } = await supabaseClient
                     .from("inventory_records")
                     .update({
                         starting_qty: nextStartingQty,
                         ending_qty: nextEndingQty,
                         buffer_stock: nextBufferStock,
+                        unit_cost: nextUnitCost,
                     })
                     .eq("month", editingItem.month)
                     .eq("year", editingItem.year)
@@ -273,6 +277,7 @@ const ItemList = () => {
         editStartingQty,
         editEndingQty,
         editType,
+        editUnitCost,
         editingItem,
         editingItemId,
         open,
@@ -363,22 +368,22 @@ const ItemList = () => {
                         </p>
                     ),
                     cell: ({ getValue }) => (
-                        <span className="truncate line-clamp-2">{getValue<string>()}</span>
+                        <span className="whitespace-normal break-words">{getValue<string>()}</span>
                     ),
                     filterFn: "includesString",
                 },
                 {
                     id: "type",
                     accessorKey: "type",
-                    size: 120,
+                    size: 100,
                     header: ({ column, table }) => (
                         <div className="column-title">
-                            <span className="whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">Type</span>
+                            <span className="whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">UOM</span>
                             <DataTableFilterCombobox
                                 column={column}
                                 table={table}
                                 options={typeOptions.map((type) => ({ label: type, value: type }))}
-                                placeholder="Type"
+                                    placeholder="UOM"
                                 operators={["eq"]}
                             />
                         </div>
@@ -387,6 +392,25 @@ const ItemList = () => {
                         <Badge variant="secondary">{getValue<string>()}</Badge>
                     ),
                     filterFn: "includesString",
+                },
+                {
+                    id: "unit_cost",
+                    accessorKey: "unit_cost",
+                    size: 120,
+                    header: () => (
+                        <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
+                            Unit Cost
+                        </p>
+                    ),
+                    cell: ({ getValue }) => (
+                        <span className="text-foreground">
+                            {(() => {
+                                const value = getValue<number | null>();
+                                if (value == null || Number.isNaN(value)) return "-";
+                                return value.toFixed(2);
+                            })()}
+                        </span>
+                    ),
                 },
                 {
                     id: "starting_qty",
@@ -804,6 +828,20 @@ const ItemList = () => {
                                         onChange={(e) => {
                                             const value = e.target.value;
                                             setEditBufferStock(value === "" ? "" : Number(value));
+                                        }}
+                                        className="bg-background"
+                                    />
+                                </div>
+                                <div className="grid gap-1.5">
+                                    <p className="text-sm font-medium">Unit Cost</p>
+                                    <Input
+                                        type="number"
+                                        min={0}
+                                        step={0.01}
+                                        value={editUnitCost}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setEditUnitCost(value === "" ? "" : Number(value));
                                         }}
                                         className="bg-background"
                                     />

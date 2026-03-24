@@ -59,6 +59,7 @@ const ItemCreate = () => {
             description: "",
             type: "",
             buffer_stock: 0,
+            unit_cost: 0,
             starting_qty: undefined,
             month: currentDate.getMonth() + 1,
             year: currentYear,
@@ -88,6 +89,7 @@ const ItemCreate = () => {
                 starting_qty: startingQty,
                 ending_qty: startingQty,
                 buffer_stock: values.buffer_stock,
+                unit_cost: values.unit_cost,
             };
 
             try {
@@ -234,6 +236,22 @@ const ItemCreate = () => {
                                                     <FormLabel>Buffer Stock</FormLabel>
                                                     <FormControl>
                                                         <Input type="number" min={0} step={1} autoComplete="off" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="unit_cost"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Unit Cost <span className="text-destructive">*</span>
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input type="number" min={0} step={0.01} autoComplete="off" {...field} />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>

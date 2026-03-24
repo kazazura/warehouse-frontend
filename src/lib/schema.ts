@@ -25,6 +25,11 @@ export const itemCreateSchema = z.object({
         .int("Buffer stock must be a whole number")
         .min(0, "Buffer stock must be at least 0"),
 
+    unit_cost: z
+        .coerce
+        .number()
+        .min(0, "Unit cost must be at least 0"),
+
     starting_qty: z
         .coerce
         .number()
