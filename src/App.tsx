@@ -86,11 +86,11 @@ function App() {
 								}
 							},
 							{
-								name: "item_movements",
-								list: "/item-movements",
-								create: "/item-movements/create",
+								name: "issue_return",
+								list: "/issue-return",
+								create: "/issue-return/create",
 								meta: {
-									label: "Item Movement",
+									label: "Issue/Return",
 									icon: <ArrowLeftRight className="w-4 h-4" />,
 								},
 							},
@@ -143,10 +143,9 @@ function App() {
 									<Route index element={<ItemList />} />
 									<Route path="create" element={<ItemCreate />} />
 								</Route>
-								<Route path="item-movements">
-									<Route index element={<ItemMovementListPage />} />
-									<Route path="create" element={<ItemMovementCreatePage />} />
-								</Route>
+								<Route path="issue-return" element={<ItemMovementListPage />} />
+								<Route path="issue-return/create" element={<ItemMovementCreatePage />} />
+								<Route path="item-movements/*" element={<NavigateToResource resource="issue_return" />} />
 								<Route path="users" element={<AdminRouteGuard />}>
 									<Route index element={<UserList />} />
 									<Route path="create" element={<UserCreate />} />
