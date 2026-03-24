@@ -333,7 +333,7 @@ const ItemList = () => {
                 {
                     id: "item_code",
                     accessorKey: "item_code",
-                    size: 100,
+                    size: 120,
                     header: () => (
                         <p className="column-title ml-2 whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                             Item Code
