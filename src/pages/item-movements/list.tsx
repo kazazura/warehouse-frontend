@@ -339,140 +339,137 @@ const ItemMovementListPage = () => {
                             {selectedMct?.mct_rel_number ?? "Material Charge Ticket"}
                         </DialogDescription>
                     </DialogHeader>
-
-                    <div className="grid gap-4 rounded-lg border bg-muted/10 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ticket Details</p>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="grid gap-3">
-                                <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
-                                    <span className="text-muted-foreground">District</span>
-                                    <span className="font-medium">{selectedMct?.district ?? "-"}</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
-                                    <span className="text-muted-foreground">Department</span>
-                                    <span className="font-medium">{selectedMct?.department ?? "-"}</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
-                                    <span className="text-muted-foreground">Request #</span>
-                                    <span className="font-medium">{selectedMct?.request_number ?? "-"}</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
-                                    <span className="text-muted-foreground">Req. Date</span>
-                                    <span className="font-medium">{selectedMct?.request_date ?? "-"}</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
-                                    <span className="text-muted-foreground">Requisitioner</span>
-                                    <span className="font-medium">{selectedMct?.requisitioner ?? "-"}</span>
-                                </div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ticket Details</p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-3">
+                            <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
+                                <span className="text-muted-foreground">District</span>
+                                <span className="font-medium">{selectedMct?.district ?? "-"}</span>
                             </div>
-                            <div className="grid gap-3">
-                                <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
-                                    <span className="text-muted-foreground">Rel. Date</span>
-                                    <span className="font-medium">{selectedMct?.release_date ?? "-"}</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
-                                    <span className="text-muted-foreground">MCT/Rel #</span>
-                                    <span className="font-medium">{selectedMct?.mct_rel_number ?? "-"}</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
-                                    <span className="text-muted-foreground">WO #</span>
-                                    <span className="font-medium">{selectedMct?.wo_number ?? "-"}</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
-                                    <span className="text-muted-foreground">JO #</span>
-                                    <span className="font-medium">{selectedMct?.jo_number ?? "-"}</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
-                                    <span className="text-muted-foreground">SO #</span>
-                                    <span className="font-medium">{selectedMct?.so_number ?? "-"}</span>
-                                </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
+                                <span className="text-muted-foreground">Department</span>
+                                <span className="font-medium">{selectedMct?.department ?? "-"}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
+                                <span className="text-muted-foreground">Request #</span>
+                                <span className="font-medium">{selectedMct?.request_number ?? "-"}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
+                                <span className="text-muted-foreground">Req. Date</span>
+                                <span className="font-medium">{selectedMct?.request_date ?? "-"}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
+                                <span className="text-muted-foreground">Requisitioner</span>
+                                <span className="font-medium">{selectedMct?.requisitioner ?? "-"}</span>
                             </div>
                         </div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ticket Items</p>
-                        <div className="rounded-md border bg-background">
-                            <Table>
-                                <TableHeader>
+                        <div className="grid gap-3">
+                            <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
+                                <span className="text-muted-foreground">Rel. Date</span>
+                                <span className="font-medium">{selectedMct?.release_date ?? "-"}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
+                                <span className="text-muted-foreground">MCT/Rel #</span>
+                                <span className="font-medium">{selectedMct?.mct_rel_number ?? "-"}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
+                                <span className="text-muted-foreground">WO #</span>
+                                <span className="font-medium">{selectedMct?.wo_number ?? "-"}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
+                                <span className="text-muted-foreground">JO #</span>
+                                <span className="font-medium">{selectedMct?.jo_number ?? "-"}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm">
+                                <span className="text-muted-foreground">SO #</span>
+                                <span className="font-medium">{selectedMct?.so_number ?? "-"}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ticket Items</p>
+                    <div className="rounded-md border bg-background">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-12 text-center">#</TableHead>
+                                    <TableHead>Item Code</TableHead>
+                                    <TableHead>Particulars</TableHead>
+                                    <TableHead>Unit</TableHead>
+                                    <TableHead className="text-right">Unit Cost</TableHead>
+                                    <TableHead className="text-right">Qty</TableHead>
+                                    <TableHead className="text-right">Total Cost</TableHead>
+                                    <TableHead>Remarks</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {mctItemsQuery.isLoading ? (
                                     <TableRow>
-                                        <TableHead className="w-12 text-center">#</TableHead>
-                                        <TableHead>Item Code</TableHead>
-                                        <TableHead>Particulars</TableHead>
-                                        <TableHead>Unit</TableHead>
-                                        <TableHead className="text-right">Unit Cost</TableHead>
-                                        <TableHead className="text-right">Qty</TableHead>
-                                        <TableHead className="text-right">Total Cost</TableHead>
-                                        <TableHead>Remarks</TableHead>
+                                        <TableCell colSpan={8} className="py-6 text-center text-sm text-muted-foreground">
+                                            Loading items...
+                                        </TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {mctItemsQuery.isLoading ? (
-                                        <TableRow>
-                                            <TableCell colSpan={8} className="py-6 text-center text-sm text-muted-foreground">
-                                                Loading items...
-                                            </TableCell>
+                                ) : mctItems.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={8} className="py-6 text-center text-sm text-muted-foreground">
+                                            No items found.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    mctItems.map((item, index) => (
+                                        <TableRow key={item.id}>
+                                            <TableCell className="text-center text-muted-foreground">{index + 1}</TableCell>
+                                            <TableCell className="font-medium">{item.item_code ?? "-"}</TableCell>
+                                            <TableCell className="min-w-[220px] whitespace-normal break-words">{item.particulars ?? "-"}</TableCell>
+                                            <TableCell>{item.unit ?? "-"}</TableCell>
+                                            <TableCell className="text-right">{formatCost(item.unit_cost)}</TableCell>
+                                            <TableCell className="text-right">{item.qty ?? "-"}</TableCell>
+                                            <TableCell className="text-right">{formatCost(item.total_cost)}</TableCell>
+                                            <TableCell className="min-w-[160px] whitespace-normal break-words">{item.remarks ?? "-"}</TableCell>
                                         </TableRow>
-                                    ) : mctItems.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={8} className="py-6 text-center text-sm text-muted-foreground">
-                                                No items found.
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        mctItems.map((item, index) => (
-                                            <TableRow key={item.id}>
-                                                <TableCell className="text-center text-muted-foreground">{index + 1}</TableCell>
-                                                <TableCell className="font-medium">{item.item_code ?? "-"}</TableCell>
-                                                <TableCell className="min-w-[220px] whitespace-normal break-words">{item.particulars ?? "-"}</TableCell>
-                                                <TableCell>{item.unit ?? "-"}</TableCell>
-                                                <TableCell className="text-right">{formatCost(item.unit_cost)}</TableCell>
-                                                <TableCell className="text-right">{item.qty ?? "-"}</TableCell>
-                                                <TableCell className="text-right">{formatCost(item.total_cost)}</TableCell>
-                                                <TableCell className="min-w-[160px] whitespace-normal break-words">{item.remarks ?? "-"}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                                {mctItems.length > 0 ? (
-                                    <TableFooter>
-                                        <TableRow>
-                                            <TableCell className="text-center text-muted-foreground">-</TableCell>
-                                            <TableCell />
-                                            <TableCell />
-                                            <TableCell />
-                                            <TableCell className="text-right text-sm font-semibold text-muted-foreground">
-                                                Total:
-                                            </TableCell>
-                                            <TableCell className="text-right text-sm font-semibold">
-                                                {totalQty}
-                                            </TableCell>
-                                            <TableCell className="text-right text-sm font-semibold">
-                                                {formatCost(totalCost)}
-                                            </TableCell>
-                                            <TableCell />
-                                        </TableRow>
-                                    </TableFooter>
-                                ) : null}
-                            </Table>
-                        </div>
+                                    ))
+                                )}
+                            </TableBody>
+                            {mctItems.length > 0 ? (
+                                <TableFooter>
+                                    <TableRow>
+                                        <TableCell className="text-center text-muted-foreground">-</TableCell>
+                                        <TableCell />
+                                        <TableCell />
+                                        <TableCell />
+                                        <TableCell className="text-right text-sm font-semibold text-muted-foreground">
+                                            Total:
+                                        </TableCell>
+                                        <TableCell className="text-right text-sm font-semibold">
+                                            {totalQty}
+                                        </TableCell>
+                                        <TableCell className="text-right text-sm font-semibold">
+                                            {formatCost(totalCost)}
+                                        </TableCell>
+                                        <TableCell />
+                                    </TableRow>
+                                </TableFooter>
+                            ) : null}
+                        </Table>
+                    </div>
 
-                        <div className="grid gap-4">
-                            <div className="grid gap-1.5">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Purpose</p>
-                                <Textarea
-                                    ref={purposeRef}
-                                    value={selectedMct?.purpose ?? ""}
-                                    readOnly
-                                    className="min-h-24 h-auto resize-none overflow-hidden bg-background"
-                                />
-                            </div>
-                            <div className="grid gap-1.5">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Notes / SR #</p>
-                                <Textarea
-                                    ref={notesRef}
-                                    value={selectedMct?.notes ?? ""}
-                                    readOnly
-                                    className="min-h-24 h-auto resize-none overflow-hidden bg-background"
-                                />
-                            </div>
+                    <div className="grid gap-4">
+                        <div className="grid gap-1.5">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Purpose</p>
+                            <Textarea
+                                ref={purposeRef}
+                                value={selectedMct?.purpose ?? ""}
+                                readOnly
+                                className="min-h-24 h-auto resize-none overflow-hidden bg-background"
+                            />
+                        </div>
+                        <div className="grid gap-1.5">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Notes / SR #</p>
+                            <Textarea
+                                ref={notesRef}
+                                value={selectedMct?.notes ?? ""}
+                                readOnly
+                                className="min-h-24 h-auto resize-none overflow-hidden bg-background"
+                            />
                         </div>
                     </div>
                     <DialogFooter>
