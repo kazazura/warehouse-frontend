@@ -719,11 +719,11 @@ const IssueReturnCreatePage = () => {
                             </div>
                             <div className="grid gap-4">
                                 <div className="grid gap-1.5">
-                                    <p className="text-sm font-medium">Purpose</p>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Purpose</p>
                                     <Textarea value={summaryHeader.purpose} readOnly className="min-h-24 bg-background" />
                                 </div>
                                 <div className="grid gap-1.5">
-                                    <p className="text-sm font-medium">Notes / SR #</p>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Notes / SR #</p>
                                     <Textarea value={summaryHeader.notes} readOnly className="h-24 resize-y overflow-auto bg-background" />
                                 </div>
                             </div>
