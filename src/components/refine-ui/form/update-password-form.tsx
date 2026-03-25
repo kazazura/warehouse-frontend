@@ -30,10 +30,7 @@ export const UpdatePasswordForm = () => {
 
   const Link = useLink();
   const { title } = useRefineOptions();
-  const { mutate: updatePassword, isPending } = useUpdatePassword({
-    successNotification: false,
-    errorNotification: false,
-  });
+  const { mutate: updatePassword, isPending } = useUpdatePassword();
   const brandIcon = useMemo(() => {
     if (!isValidElement<{ style?: React.CSSProperties; className?: string }>(title.icon)) {
       return title.icon;

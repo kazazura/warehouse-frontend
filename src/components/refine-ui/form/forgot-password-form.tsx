@@ -45,10 +45,7 @@ export const ForgotPasswordForm = () => {
     });
   }, [title.icon]);
 
-  const { mutate: forgotPassword, isPending } = useForgotPassword({
-    successNotification: false,
-    errorNotification: false,
-  });
+  const { mutate: forgotPassword, isPending } = useForgotPassword();
 
   const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
