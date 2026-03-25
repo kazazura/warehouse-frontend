@@ -6,12 +6,13 @@ import { DataTableSorter } from "@/components/refine-ui/data-table/data-table-so
 import { DataTableFilterCombobox } from "@/components/refine-ui/data-table/data-table-filter";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search } from "lucide-react";
 import { useTable } from "@refinedev/react-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useList } from "@refinedev/core";
 
 type MctRow = {
@@ -48,6 +49,8 @@ const ItemMovementListPage = () => {
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
     const [selectedMct, setSelectedMct] = useState<MctRow | null>(null);
     const [detailOpen, setDetailOpen] = useState(false);
+    const purposeRef = useRef<HTMLTextAreaElement | null>(null);
+    const notesRef = useRef<HTMLTextAreaElement | null>(null);
 
     const { result: mctItemsResult, query: mctItemsQuery } = useList<MctItemRow>({
         resource: "mct_items",
@@ -270,6 +273,17 @@ const ItemMovementListPage = () => {
         );
     }, [debouncedSearchQuery, mctTable.refineCore.setFilters]);
 
+    useEffect(() => {
+        const resizeTextarea = (ref: { current: HTMLTextAreaElement | null }) => {
+            if (!ref.current) return;
+            ref.current.style.height = "auto";
+            ref.current.style.height = `${ref.current.scrollHeight}px`;
+        };
+
+        resizeTextarea(purposeRef);
+        resizeTextarea(notesRef);
+    }, [selectedMct?.purpose, selectedMct?.notes, detailOpen]);
+
     return (
         <ListView>
             <ListViewHeader title="Issue/Return" />
@@ -375,7 +389,7 @@ const ItemMovementListPage = () => {
                             </div>
                         </div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ticket Items</p>
-                        <div className="rounded-md border bg-background max-h-[50vh] overflow-y-auto">
+                        <div className="rounded-md border bg-background">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -407,12 +421,12 @@ const ItemMovementListPage = () => {
                                             <TableRow key={item.id}>
                                                 <TableCell className="text-center text-muted-foreground">{index + 1}</TableCell>
                                                 <TableCell className="font-medium">{item.item_code ?? "-"}</TableCell>
-                                                <TableCell className="min-w-[220px] whitespace-normal">{item.particulars ?? "-"}</TableCell>
+                                                <TableCell className="min-w-[220px] whitespace-normal break-words">{item.particulars ?? "-"}</TableCell>
                                                 <TableCell>{item.unit ?? "-"}</TableCell>
                                                 <TableCell className="text-right">{formatCost(item.unit_cost)}</TableCell>
                                                 <TableCell className="text-right">{item.qty ?? "-"}</TableCell>
                                                 <TableCell className="text-right">{formatCost(item.total_cost)}</TableCell>
-                                                <TableCell className="min-w-[160px] whitespace-normal">{item.remarks ?? "-"}</TableCell>
+                                                <TableCell className="min-w-[160px] whitespace-normal break-words">{item.remarks ?? "-"}</TableCell>
                                             </TableRow>
                                         ))
                                     )}
@@ -443,15 +457,21 @@ const ItemMovementListPage = () => {
                         <div className="grid gap-4">
                             <div className="grid gap-1.5">
                                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Purpose</p>
-                                <div className="min-h-[88px] rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground">
-                                    {selectedMct?.purpose ?? "-"}
-                                </div>
+                                <Textarea
+                                    ref={purposeRef}
+                                    value={selectedMct?.purpose ?? ""}
+                                    readOnly
+                                    className="min-h-24 h-auto resize-none overflow-hidden bg-background"
+                                />
                             </div>
                             <div className="grid gap-1.5">
                                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Notes / SR #</p>
-                                <div className="min-h-[88px] rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground">
-                                    {selectedMct?.notes ?? "-"}
-                                </div>
+                                <Textarea
+                                    ref={notesRef}
+                                    value={selectedMct?.notes ?? ""}
+                                    readOnly
+                                    className="min-h-24 h-auto resize-none overflow-hidden bg-background"
+                                />
                             </div>
                         </div>
 
