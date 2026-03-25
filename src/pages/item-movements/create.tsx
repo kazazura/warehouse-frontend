@@ -94,7 +94,7 @@ const ITEM_KEY_MAP: Record<string, keyof MaterialChargeTicketItem> = {
     amount: "total_cost",
     total: "total_cost",
     purpose: "purpose",
-    remarks: "remarks",
+    remarks: "notes",
     notes: "notes",
     "notes/sr#": "notes",
     "sr#": "notes",
@@ -315,8 +315,14 @@ const parseRowsToTicket = (rows: string[][]) => {
 
 const formatDecimal = (value: number | null) => {
     if (value == null || Number.isNaN(value)) return "-";
-    return value.toFixed(2);
+    return value.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
 };
+
+const sumNumbers = (values: Array<number | null>) =>
+    values.reduce<number>((acc, value) => (value == null || Number.isNaN(value) ? acc : acc + value), 0);
 
 const IssueReturnCreatePage = () => {
     const [file, setFile] = useState<File | null>(null);
@@ -384,6 +390,8 @@ const IssueReturnCreatePage = () => {
     }, [file]);
 
     const summaryHeader = useMemo(() => ticketHeader ?? EMPTY_HEADER, [ticketHeader]);
+    const totalQty = useMemo(() => sumNumbers(ticketItems.map((item) => item.qty)), [ticketItems]);
+    const totalCost = useMemo(() => sumNumbers(ticketItems.map((item) => item.total_cost)), [ticketItems]);
 
     return (
         <CreateView className="item-view">
@@ -485,10 +493,28 @@ const IssueReturnCreatePage = () => {
                                                     <TableCell className="text-right">{formatDecimal(item.unit_cost)}</TableCell>
                                                     <TableCell className="text-right">{item.qty ?? "-"}</TableCell>
                                                     <TableCell className="text-right">{formatDecimal(item.total_cost)}</TableCell>
-                                                    <TableCell className="min-w-[160px] whitespace-normal">{item.remarks || "-"}</TableCell>
+                                                    <TableCell className="min-w-[160px] whitespace-normal">{item.notes || "-"}</TableCell>
                                                 </TableRow>
                                             ))
                                         )}
+                                        {ticketItems.length > 0 ? (
+                                            <TableRow>
+                                                <TableCell className="text-center text-sm font-semibold text-muted-foreground">-</TableCell>
+                                                <TableCell />
+                                                <TableCell />
+                                                <TableCell />
+                                                <TableCell className="text-right text-sm font-semibold">
+                                                    Total:
+                                                </TableCell>
+                                                <TableCell className="text-right text-sm font-semibold">
+                                                    {Number.isFinite(totalQty) ? totalQty : "-"}
+                                                </TableCell>
+                                                <TableCell className="text-right text-sm font-semibold">
+                                                    {formatDecimal(totalCost)}
+                                                </TableCell>
+                                                <TableCell />
+                                            </TableRow>
+                                        ) : null}
                                     </TableBody>
                                 </Table>
                             </div>
