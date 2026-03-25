@@ -1,11 +1,31 @@
 import { CreateView, CreateViewHeader } from "@/components/refine-ui/views/create-view";
 import UploadWidget from "@/components/upload-widget";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
+import { supabaseClient } from "@/providers/supabase-client";
+import { useGetIdentity, useGo, useInvalidate, useNotification } from "@refinedev/core";
 
 type MaterialChargeTicketHeader = {
     district: string;
@@ -330,6 +350,15 @@ const IssueReturnCreatePage = () => {
     const [ticketItems, setTicketItems] = useState<MaterialChargeTicketItem[]>([]);
     const [parseError, setParseError] = useState<string | null>(null);
     const [parseStatus, setParseStatus] = useState<string | null>(null);
+    const [validationErrors, setValidationErrors] = useState<string[]>([]);
+    const [missingInventoryItems, setMissingInventoryItems] = useState<MaterialChargeTicketItem[]>([]);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { data: identity } = useGetIdentity<{ id?: string | number }>();
+    const { open } = useNotification();
+    const invalidate = useInvalidate();
+    const go = useGo();
 
     useEffect(() => {
         if (!file) {
@@ -393,12 +422,182 @@ const IssueReturnCreatePage = () => {
     const totalQty = useMemo(() => sumNumbers(ticketItems.map((item) => item.qty)), [ticketItems]);
     const totalCost = useMemo(() => sumNumbers(ticketItems.map((item) => item.total_cost)), [ticketItems]);
 
+    const validateItems = () => {
+        const errors: string[] = [];
+        if (ticketItems.length === 0) {
+            errors.push("No item rows detected. Upload a file with item entries before saving.");
+        }
+
+        ticketItems.forEach((item, index) => {
+            if (!item.item_code?.trim()) {
+                errors.push(`Row ${index + 1}: Missing item code.`);
+            }
+            if (item.qty == null || Number.isNaN(item.qty) || item.qty <= 0) {
+                errors.push(`Row ${index + 1}: Quantity must be greater than 0.`);
+            }
+        });
+
+        setValidationErrors(errors);
+        setErrorDialogOpen(errors.length > 0);
+        return errors.length === 0;
+    };
+
+    const buildHeaderPayload = () => ({
+        district: summaryHeader.district || null,
+        department: summaryHeader.department || null,
+        request_number: summaryHeader.requestNumber || null,
+        request_date: summaryHeader.requestDate || null,
+        requisitioner: summaryHeader.requisitioner || null,
+        release_date: summaryHeader.releaseDate || null,
+        mct_rel_number: summaryHeader.mctRelNumber || null,
+        wo_number: summaryHeader.woNumber || null,
+        jo_number: summaryHeader.joNumber || null,
+        so_number: summaryHeader.soNumber || null,
+        purpose: summaryHeader.purpose || null,
+        notes: summaryHeader.notes || null,
+    });
+
+    const buildItemsPayload = () =>
+        ticketItems.map((item) => ({
+            item_code: item.item_code?.trim() || null,
+            particulars: item.particulars || null,
+            unit: item.unit || null,
+            unit_cost: item.unit_cost ?? null,
+            qty: item.qty ?? null,
+            total_cost: item.total_cost ?? null,
+            remarks: item.notes || null,
+        }));
+
+    const parseMissingCodes = (message: string, prefix: string) => {
+        if (!message.startsWith(prefix)) return [];
+        const raw = message.slice(prefix.length).trim();
+        if (!raw) return [];
+        return raw.split(",").map((code) => code.trim()).filter(Boolean);
+    };
+
+    const handleAddMct = async () => {
+        if (isSubmitting) return;
+        setValidationErrors([]);
+        setMissingInventoryItems([]);
+
+        if (!validateItems()) {
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const { data, error } = await supabaseClient.rpc("create_mct_transaction", {
+                p_header: buildHeaderPayload(),
+                p_items: buildItemsPayload(),
+                p_create_missing_inventory: false,
+                p_created_by: identity?.id ? String(identity.id) : null,
+            });
+
+            if (error) {
+                const message = error.message ?? "Unable to save MCT.";
+                const duplicate = parseMissingCodes(message, "duplicate_mct:");
+                if (duplicate.length > 0) {
+                    const errors = [`Duplicate MCT/Rel # detected: ${duplicate.join(", ")}`];
+                    setValidationErrors(errors);
+                    setErrorDialogOpen(true);
+                    return;
+                }
+                const missingItems = parseMissingCodes(message, "missing_item_codes:");
+                if (missingItems.length > 0) {
+                    const errors = missingItems.map((code) => `Item code not found: ${code}`);
+                    setValidationErrors(errors);
+                    setErrorDialogOpen(true);
+                    return;
+                }
+                const missingInventory = parseMissingCodes(message, "missing_inventory:");
+                if (missingInventory.length > 0) {
+                    setMissingInventoryItems(
+                        ticketItems.filter((item) =>
+                            missingInventory.includes(item.item_code.trim().toUpperCase())
+                        )
+                    );
+                    setConfirmOpen(true);
+                    return;
+                }
+                setValidationErrors([message]);
+                setErrorDialogOpen(true);
+                return;
+            }
+
+            open?.({
+                type: "success",
+                message: "MCT saved",
+                description: "Material charge ticket saved.",
+            });
+
+            invalidate({ resource: "mcts", invalidates: ["list"] });
+            invalidate({ resource: "mct_items", invalidates: ["list"] });
+
+            go({ to: "/issue-return", type: "replace" });
+        } catch (error) {
+            const description = error instanceof Error ? error.message : "Unable to save MCT.";
+            setValidationErrors([description]);
+            setErrorDialogOpen(true);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleConfirmCreateInventory = async () => {
+        if (isSubmitting) {
+            setConfirmOpen(false);
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const { error } = await supabaseClient.rpc("create_mct_transaction", {
+                p_header: buildHeaderPayload(),
+                p_items: buildItemsPayload(),
+                p_create_missing_inventory: true,
+                p_created_by: identity?.id ? String(identity.id) : null,
+            });
+
+            if (error) {
+                const message = error.message ?? "Unable to save MCT.";
+                const duplicate = parseMissingCodes(message, "duplicate_mct:");
+                if (duplicate.length > 0) {
+                const errors = [`Duplicate MCT/Rel # detected: ${duplicate.join(", ")}`];
+                setValidationErrors(errors);
+                setErrorDialogOpen(true);
+                return;
+            }
+                setValidationErrors([message]);
+                setErrorDialogOpen(true);
+                return;
+            }
+
+            open?.({
+                type: "success",
+                message: "MCT saved",
+                description: "Material charge ticket saved.",
+            });
+
+            invalidate({ resource: "mcts", invalidates: ["list"] });
+            invalidate({ resource: "mct_items", invalidates: ["list"] });
+
+            go({ to: "/issue-return", type: "replace" });
+        } catch (error) {
+            const description = error instanceof Error ? error.message : "Unable to save MCT.";
+            setValidationErrors([description]);
+            setErrorDialogOpen(true);
+        } finally {
+            setIsSubmitting(false);
+            setConfirmOpen(false);
+        }
+    };
+
     return (
         <CreateView className="item-view">
             <CreateViewHeader title="MCT" />
             <div className="my-4 flex items-center">
-                <Card className="w-full max-w-5xl mx-auto item-form-card gap-0 overflow-hidden border-border/80 shadow-sm">
-                    <CardHeader className="border-b">
+                <Card className="w-full max-w-5xl mx-auto item-form-card gap-0 overflow-hidden border-border/80 shadow-sm py-0">
+                    <CardHeader className="border-b pt-6">
                         <CardTitle>Material Charge Ticket</CardTitle>
                         <CardDescription>
                             Upload an Excel or CSV file to extract Material Charge Ticket details.
@@ -408,7 +607,7 @@ const IssueReturnCreatePage = () => {
                         <UploadWidget value={file} onFileChange={setFile} />
                         {parseStatus ? <p className="text-sm text-muted-foreground">{parseStatus}</p> : null}
                         {parseError ? <p className="text-sm text-destructive">{parseError}</p> : null}
-                        <div className="rounded-lg border bg-muted/10 p-3 space-y-4">
+                        <div className="rounded-lg border bg-muted/10 p-3 space-y-4 mb-4">
                             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                 Ticket Details
                             </p>
@@ -530,8 +729,75 @@ const IssueReturnCreatePage = () => {
                             </div>
                         </div>
                     </CardContent>
+                    <CardFooter className="border-t px-0 py-4 !pt-4">
+                        <div className="flex w-full items-center justify-between px-6">
+                            <p className="text-xs text-muted-foreground">
+                                {isSubmitting ? "Saving MCT..." : "Review parsed values before saving."}
+                            </p>
+                            <div className="flex justify-end gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => go({ to: "/issue-return", type: "replace" })}
+                                    disabled={isSubmitting}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button type="button" onClick={handleAddMct} disabled={isSubmitting}>
+                                    {isSubmitting ? "Saving..." : "Add MCT"}
+                                </Button>
+                            </div>
+                        </div>
+                    </CardFooter>
                 </Card>
             </div>
+            <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                <AlertDialogContent className="sm:max-w-xl overflow-hidden p-0 border-border/80 shadow-sm">
+                    <AlertDialogHeader className="border-b px-6 py-5">
+                        <AlertDialogTitle className="text-2xl">Missing inventory records</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Some items do not have an inventory record for the current month. Add records now?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="grid gap-3 px-6 py-6 text-sm">
+                        {missingInventoryItems.map((item) => (
+                            <div key={item.id} className="flex items-center justify-between gap-4">
+                                <span className="font-medium">{item.item_code}</span>
+                                <span className="text-muted-foreground">{item.particulars || "-"}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <AlertDialogFooter className="border-t px-6 py-4 sm:justify-end">
+                        <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleConfirmCreateInventory} disabled={isSubmitting}>
+                            Add Records &amp; Continue
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <Dialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Unable to save MCT</DialogTitle>
+                        <DialogDescription>
+                            {validationErrors.length > 0 ? (
+                                <ul className="list-disc pl-4 space-y-1 text-destructive">
+                                    {validationErrors.map((error) => (
+                                        <li key={error}>{error}</li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <span className="text-destructive">Please review the errors and try again.</span>
+                            )}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button type="button" onClick={() => setErrorDialogOpen(false)}>
+                            Okay
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </CreateView>
     );
 };
