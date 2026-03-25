@@ -26,7 +26,6 @@ type ListHeaderProps = PropsWithChildren<{
 }>;
 
 export const ListViewHeader = ({
-  canCreate,
   resource: resourceFromProps,
   title: titleFromProps,
   wrapperClassName,
