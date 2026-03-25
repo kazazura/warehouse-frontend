@@ -474,11 +474,7 @@ const ItemMovementListPage = () => {
                                 />
                             </div>
                         </div>
-
                     </div>
-
-
-
                     <DialogFooter>
                         <button
                             type="button"
