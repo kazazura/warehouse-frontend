@@ -26,12 +26,15 @@ create table if not exists public.mct_items (
     unit_cost numeric,
     qty numeric,
     total_cost numeric,
+    c2 numeric,
     remarks text,
     created_at timestamptz not null default now()
 );
 
 create index if not exists mct_items_mct_id_idx on public.mct_items(mct_id);
 create index if not exists mct_items_item_id_idx on public.mct_items(item_id);
+
+alter table public.mct_items add column if not exists c2 numeric;
 create unique index if not exists mcts_mct_rel_number_uniq
     on public.mcts (mct_rel_number)
     where mct_rel_number is not null and mct_rel_number <> '';
@@ -233,11 +236,12 @@ begin
             nullif(value->>'unit_cost','')::numeric as unit_cost,
             nullif(value->>'qty','')::numeric as qty,
             nullif(value->>'total_cost','')::numeric as total_cost,
+            nullif(value->>'c2','')::numeric as c2,
             value->>'remarks' as remarks
         from jsonb_array_elements(p_items) as value
     )
     insert into public.mct_items (
-        mct_id, item_id, item_code, particulars, unit, unit_cost, qty, total_cost, remarks
+        mct_id, item_id, item_code, particulars, unit, unit_cost, qty, total_cost, c2, remarks
     )
     select
         v_mct_id,
@@ -248,6 +252,7 @@ begin
         ii.unit_cost,
         ii.qty,
         ii.total_cost,
+        ii.c2,
         ii.remarks
     from items_input ii
     join public.items i on upper(i.item_code) = ii.item_code
