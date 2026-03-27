@@ -133,7 +133,7 @@ const ItemMovementListPage = () => {
                             <p className="column-title ml-2 whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                                 MCT/Rel #
                             </p>
-                            <DataTableSorter column={column} />
+                            <DataTableSorter column={column} title={undefined} />
                         </div>
                     ),
                     cell: ({ row, getValue }) => renderBadgeCell(getValue<string>(), row.original),
