@@ -119,7 +119,7 @@ const ItemMovementListPage = () => {
                 {
                     id: "mct_rel_number",
                     accessorKey: "mct_rel_number",
-                    size: 150,
+                    size: 160,
                     header: ({ column }) => (
                         <div className="flex items-center gap-1">
                             <p className="column-title ml-2 whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
@@ -332,7 +332,7 @@ const ItemMovementListPage = () => {
                     }
                 }}
             >
-                <DialogContent className="sm:max-w-5xl max-h-[85vh] overflow-y-auto hide-scrollbar">
+                <DialogContent className="sm:max-w-5xl max-h-[85vh] overflow-y-auto thin-scrollbar">
                     <DialogHeader>
                         <DialogTitle>MCT Details</DialogTitle>
                         <DialogDescription>
@@ -387,8 +387,8 @@ const ItemMovementListPage = () => {
                         </div>
                     </div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ticket Items</p>
-                    <div className="rounded-md border bg-background">
-                        <Table>
+                        <div className="rounded-md border bg-background overflow-x-auto">
+                            <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-12 text-center">#</TableHead>
