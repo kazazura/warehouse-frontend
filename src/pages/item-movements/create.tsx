@@ -50,6 +50,7 @@ type MaterialChargeTicketItem = {
     unit_cost: number | null;
     qty: number | null;
     total_cost: number | null;
+    c2: number | null;
     purpose: string;
     remarks: string;
     notes: string;
@@ -113,6 +114,7 @@ const ITEM_KEY_MAP: Record<string, keyof MaterialChargeTicketItem> = {
     totalcost: "total_cost",
     amount: "total_cost",
     total: "total_cost",
+    c2: "c2",
     purpose: "purpose",
     remarks: "notes",
     notes: "notes",
@@ -237,6 +239,7 @@ const parseItemsFromTable = (rows: string[][]) => {
             unit_cost: null,
             qty: null,
             total_cost: null,
+            c2: null,
             purpose: "",
             remarks: "",
             notes: "",
@@ -250,7 +253,7 @@ const parseItemsFromTable = (rows: string[][]) => {
             const value = cell.trim();
             if (!value) return;
 
-            if (key === "unit_cost" || key === "qty" || key === "total_cost") {
+            if (key === "unit_cost" || key === "qty" || key === "total_cost" || key === "c2") {
                 item[key] = parseNumber(value);
             } else {
                 item[key] = value;
@@ -338,6 +341,13 @@ const formatDecimal = (value: number | null) => {
     return value.toLocaleString("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
+    });
+};
+
+const formatC2 = (value: number | null) => {
+    if (value == null || Number.isNaN(value)) return "-";
+    return value.toLocaleString("en-US", {
+        maximumFractionDigits: 0,
     });
 };
 
@@ -465,6 +475,7 @@ const IssueReturnCreatePage = () => {
             unit_cost: item.unit_cost ?? null,
             qty: item.qty ?? null,
             total_cost: item.total_cost ?? null,
+            c2: item.c2 ?? null,
             remarks: item.notes || null,
         }));
 
@@ -672,13 +683,14 @@ const IssueReturnCreatePage = () => {
                                             <TableHead className="text-right">Unit Cost</TableHead>
                                             <TableHead className="text-right">Qty</TableHead>
                                             <TableHead className="text-right">Total Cost</TableHead>
+                                            <TableHead className="text-right">C2</TableHead>
                                             <TableHead>Remarks</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {ticketItems.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
+                                                <TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">
                                                     No item rows detected yet.
                                                 </TableCell>
                                             </TableRow>
@@ -692,6 +704,7 @@ const IssueReturnCreatePage = () => {
                                                     <TableCell className="text-right">{formatDecimal(item.unit_cost)}</TableCell>
                                                     <TableCell className="text-right">{item.qty ?? "-"}</TableCell>
                                                     <TableCell className="text-right">{formatDecimal(item.total_cost)}</TableCell>
+                                                    <TableCell className="text-right">{formatC2(item.c2)}</TableCell>
                                                     <TableCell className="min-w-[160px] whitespace-normal">{item.notes || "-"}</TableCell>
                                                 </TableRow>
                                             ))
@@ -711,6 +724,7 @@ const IssueReturnCreatePage = () => {
                                                 <TableCell className="text-right text-sm font-semibold">
                                                     {formatDecimal(totalCost)}
                                                 </TableCell>
+                                                <TableCell />
                                                 <TableCell />
                                             </TableRow>
                                         ) : null}

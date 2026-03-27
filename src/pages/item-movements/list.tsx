@@ -41,6 +41,7 @@ type MctItemRow = {
     unit_cost: number | null;
     qty: number | null;
     total_cost: number | null;
+    c2: number | null;
     remarks: string | null;
 };
 
@@ -76,6 +77,13 @@ const ItemMovementListPage = () => {
         return value.toLocaleString("en-US", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
+        });
+    };
+
+    const formatC2 = (value: number | null | undefined) => {
+        if (value == null || Number.isNaN(value)) return "-";
+        return value.toLocaleString("en-US", {
+            maximumFractionDigits: 0,
         });
     };
 
@@ -398,19 +406,20 @@ const ItemMovementListPage = () => {
                                     <TableHead className="text-right">Unit Cost</TableHead>
                                     <TableHead className="text-right">Qty</TableHead>
                                     <TableHead className="text-right">Total Cost</TableHead>
+                                    <TableHead className="text-right">C2</TableHead>
                                     <TableHead>Remarks</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {mctItemsQuery.isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} className="py-6 text-center text-sm text-muted-foreground">
+                                        <TableCell colSpan={9} className="py-6 text-center text-sm text-muted-foreground">
                                             Loading items...
                                         </TableCell>
                                     </TableRow>
                                 ) : mctItems.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} className="py-6 text-center text-sm text-muted-foreground">
+                                        <TableCell colSpan={9} className="py-6 text-center text-sm text-muted-foreground">
                                             No items found.
                                         </TableCell>
                                     </TableRow>
@@ -424,6 +433,7 @@ const ItemMovementListPage = () => {
                                             <TableCell className="text-right">{formatCost(item.unit_cost)}</TableCell>
                                             <TableCell className="text-right">{item.qty ?? "-"}</TableCell>
                                             <TableCell className="text-right">{formatCost(item.total_cost)}</TableCell>
+                                            <TableCell className="text-right">{formatC2(item.c2)}</TableCell>
                                             <TableCell className="min-w-[160px] whitespace-normal break-words">{item.remarks ?? "-"}</TableCell>
                                         </TableRow>
                                     ))
@@ -445,6 +455,7 @@ const ItemMovementListPage = () => {
                                         <TableCell className="text-right text-sm font-semibold">
                                             {formatCost(totalCost)}
                                         </TableCell>
+                                        <TableCell />
                                         <TableCell />
                                     </TableRow>
                                 </TableFooter>
