@@ -55,6 +55,23 @@
     height: 0;
   }
 
+  .thin-scrollbar {
+    scrollbar-width: thin;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--muted-foreground) 30%, transparent);
+    border-radius: 999px;
+  }
+
   .status-badge-success {
     @apply !border-emerald-200 !bg-emerald-50 !text-emerald-700 dark:!border-emerald-900/50 dark:!bg-emerald-950/40 dark:!text-emerald-300;
   }
