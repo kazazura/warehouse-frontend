@@ -13,6 +13,7 @@ import { MONTHS_OPTIONS } from "@/constants";
 import { CreateButton } from "@/components/refine-ui/buttons/create";
 import { DataTable } from "@/components/refine-ui/data-table/data-table";
 import { DataTableFilterCombobox } from "@/components/refine-ui/data-table/data-table-filter";
+import { DataTableSorter } from "@/components/refine-ui/data-table/data-table-sorter";
 import { useTable } from "@refinedev/react-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
@@ -334,10 +335,13 @@ const ItemList = () => {
                     id: "item_code",
                     accessorKey: "item_code",
                     size: 120,
-                    header: () => (
-                        <p className="column-title ml-2 whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
-                            Item Code
-                        </p>
+                    header: ({ column }) => (
+                        <div className="flex items-center gap-1">
+                            <p className="column-title ml-2 whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
+                                Item Code
+                            </p>
+                            <DataTableSorter column={column} title={undefined} />
+                        </div>
                     ),
                     cell: ({ getValue }) => {
                         const itemCode = getValue<string>() ?? "-";
@@ -481,7 +485,9 @@ const ItemList = () => {
                 mode: "server",
                 initial: buildDateFilters(selectedYear, selectedMonth),
             },
-            sorters: {},
+            sorters: {
+                initial: [{ field: "item_code", order: "asc" }],
+            },
         },
     });
     const columnFilters = itemTable.reactTable.getState().columnFilters;
