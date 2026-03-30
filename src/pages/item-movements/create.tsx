@@ -520,6 +520,15 @@ const IssueReturnCreatePage = () => {
                     setErrorDialogOpen(true);
                     return;
                 }
+                const insufficientInventory = parseMissingCodes(message, "insufficient_inventory:");
+                if (insufficientInventory.length > 0) {
+                    const errors = insufficientInventory.map(
+                        (code) => `Insufficient inventory for item code: ${code}`
+                    );
+                    setValidationErrors(errors);
+                    setErrorDialogOpen(true);
+                    return;
+                }
                 const missingInventory = parseMissingCodes(message, "missing_inventory:");
                 if (missingInventory.length > 0) {
                     setMissingInventoryItems(

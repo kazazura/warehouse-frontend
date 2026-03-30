@@ -102,6 +102,7 @@ declare
     v_mct_id uuid;
     missing_item_codes text[];
     missing_inventory_codes text[];
+    insufficient_inventory_codes text[];
 begin
     if p_items is null or jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
         raise exception 'no_items';
@@ -193,6 +194,39 @@ begin
         select
             item_id, v_month, v_year, 0, 0, 0, unit_cost, p_created_by
         from items_join;
+    end if;
+
+    with items_input as (
+        select
+            upper(trim(coalesce(value->>'item_code',''))) as item_code,
+            coalesce(nullif(value->>'qty','')::numeric, 0) as qty
+        from jsonb_array_elements(p_items) as value
+    ),
+    items_agg as (
+        select i.id as item_id, ii.item_code, sum(ii.qty) as total_qty
+        from items_input ii
+        join public.items i on upper(i.item_code) = ii.item_code
+        where ii.item_code <> ''
+        group by i.id, ii.item_code
+    ),
+    inventory_join as (
+        select
+            items_agg.item_code,
+            coalesce(ir.ending_qty, 0) as ending_qty,
+            items_agg.total_qty
+        from items_agg
+        join public.inventory_records ir
+            on ir.item_id = items_agg.item_id
+            and ir.month = v_month
+            and ir.year = v_year
+    )
+    select array_agg(item_code)
+    into insufficient_inventory_codes
+    from inventory_join
+    where ending_qty - total_qty < 0;
+
+    if insufficient_inventory_codes is not null then
+        raise exception 'insufficient_inventory:%', array_to_string(insufficient_inventory_codes, ',');
     end if;
 
     insert into public.mcts (
