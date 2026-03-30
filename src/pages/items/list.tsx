@@ -331,151 +331,151 @@ const ItemList = () => {
     const itemTable = useTable<ItemInventoryRowWithId>({
         columns: useMemo<ColumnDef<ItemInventoryRowWithId>[]>(
             () => [
-                {
-                    id: "item_code",
-                    accessorKey: "item_code",
-                    size: 120,
-                    header: ({ column }) => (
-                        <div className="flex items-center gap-1">
-                            <p className="column-title ml-2 whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
-                                Item Code
-                            </p>
-                            <DataTableSorter column={column} title={undefined} />
-                        </div>
-                    ),
-                    cell: ({ getValue }) => {
-                        const itemCode = getValue<string>() ?? "-";
-                        return (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Badge
-                                        className="cursor-pointer select-none"
-                                        onClick={() => void handleCopyItemCode(itemCode)}
-                                    >
-                                        {itemCode}
-                                    </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" align="start" className="w-max max-w-[min(90vw,48rem)] whitespace-normal break-words">
-                                    {`Click to copy: ${itemCode}`}
-                                </TooltipContent>
-                            </Tooltip>
-                        );
+                    {
+                        id: "item_code",
+                        accessorKey: "item_code",
+                        size: 120,
+                        header: ({ column }) => (
+                            <div className="flex items-center gap-1">
+                                <p className="column-title ml-2 whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
+                                    Item Code
+                                </p>
+                                <DataTableSorter column={column} title={undefined} />
+                            </div>
+                        ),
+                        cell: ({ getValue }) => {
+                            const itemCode = getValue<string>() ?? "-";
+                            return (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Badge
+                                            className="cursor-pointer select-none"
+                                            onClick={() => void handleCopyItemCode(itemCode)}
+                                        >
+                                            {itemCode}
+                                        </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" align="start" className="w-max max-w-[min(90vw,48rem)] whitespace-normal break-words">
+                                        {`Click to copy: ${itemCode}`}
+                                    </TooltipContent>
+                                </Tooltip>
+                            );
+                        },
                     },
-                },
-                {
-                    id: "description",
-                    accessorKey: "description",
-                    size: 400,
-                    header: () => (
-                        <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
-                            Description
-                        </p>
-                    ),
-                    cell: ({ getValue }) => (
-                        <span className="whitespace-normal break-words">{getValue<string>()}</span>
-                    ),
-                    filterFn: "includesString",
-                },
-                {
-                    id: "type",
-                    accessorKey: "type",
-                    size: 75,
-                    header: ({ column, table }) => (
-                        <div className="column-title">
-                            <span className="whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">UOM</span>
-                            <DataTableFilterCombobox
-                                column={column}
-                                table={table}
-                                options={typeOptions.map((type) => ({ label: type, value: type }))}
+                    {
+                        id: "description",
+                        accessorKey: "description",
+                        size: 400,
+                        header: () => (
+                            <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
+                                Description
+                            </p>
+                        ),
+                        cell: ({ getValue }) => (
+                            <span className="whitespace-normal break-words">{getValue<string>()}</span>
+                        ),
+                        filterFn: "includesString",
+                    },
+                    {
+                        id: "type",
+                        accessorKey: "type",
+                        size: 75,
+                        header: ({ column, table }) => (
+                            <div className="column-title">
+                                <span className="whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">UOM</span>
+                                <DataTableFilterCombobox
+                                    column={column}
+                                    table={table}
+                                    options={typeOptions.map((type) => ({ label: type, value: type }))}
                                     placeholder="UOM"
-                                operators={["eq"]}
-                            />
-                        </div>
-                    ),
-                    cell: ({ getValue }) => (
-                        <Badge variant="secondary">{getValue<string>()}</Badge>
-                    ),
-                    filterFn: "includesString",
-                },
-                {
-                    id: "unit_cost",
-                    accessorKey: "unit_cost",
-                    size: 100,
-                    header: () => (
-                        <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
-                            Unit Cost
-                        </p>
-                    ),
-                    cell: ({ getValue }) => (
-                        <span className="text-foreground">
-                            {(() => {
-                                const value = getValue<number | null>();
-                                if (value == null || Number.isNaN(value)) return "-";
-                                return value.toFixed(2);
-                            })()}
-                        </span>
-                    ),
-                },
-                {
-                    id: "starting_qty",
-                    accessorKey: "starting_qty",
-                    size: 100    ,
-                    header: () => (
-                        <p className="column-title whitespace-normal wrap-break-wordword leading-tight sm:whitespace-nowrap">
-                            Starting Qty.
-                        </p>
-                    ),
-                    cell: ({ getValue }) => (
-                        <span className="text-foreground">{getValue<number | null>() ?? "-"}</span>
-                    ),
-                },
-                {
-                    id: "buffer_stock",
-                    accessorKey: "buffer_stock",
-                    size: 100,
-                    header: () => (
-                        <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
-                            Buffer Stock
-                        </p>
-                    ),
-                    cell: ({ getValue }) => (
-                        <span className="text-foreground">{getValue<number | null>() ?? "-"}</span>
-                    ),
-                },
-                {
-                    id: "ending_qty",
-                    accessorKey: "ending_qty",
-                    size: 100,
-                    header: () => (
-                        <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
-                            Ending Qty.
-                        </p>
-                    ),
-                    cell: ({ getValue }) => (
-                        <span className="text-foreground">{getValue<number | null>() ?? "-"}</span>
-                    ),
-                },
-                {
-                    id: "actions",
-                    size: 90,
-                    header: () => <p className="column-title">Actions</p>,
-                    enableSorting: false,
-                    enableColumnFilter: false,
-                    cell: ({ row }) => (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            title="Edit item"
-                            className="h-8 w-8 p-0"
-                            onClick={() => openEditDialog(row.original)}
-                        >
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">Edit item</span>
-                        </Button>
-                    ),
-                },
-            ],
+                                    operators={["eq"]}
+                                />
+                            </div>
+                        ),
+                        cell: ({ getValue }) => (
+                            <Badge variant="secondary">{getValue<string>()}</Badge>
+                        ),
+                        filterFn: "includesString",
+                    },
+                    {
+                        id: "unit_cost",
+                        accessorKey: "unit_cost",
+                        size: 100,
+                        header: () => (
+                            <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
+                                Unit Cost
+                            </p>
+                        ),
+                        cell: ({ getValue }) => (
+                            <span className="text-foreground">
+                                {(() => {
+                                    const value = getValue<number | null>();
+                                    if (value == null || Number.isNaN(value)) return "-";
+                                    return value.toFixed(2);
+                                })()}
+                            </span>
+                        ),
+                    },
+                    {
+                        id: "buffer_stock",
+                        accessorKey: "buffer_stock",
+                        size: 100,
+                        header: () => (
+                            <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
+                                Buffer Stock
+                            </p>
+                        ),
+                        cell: ({ getValue }) => (
+                            <span className="text-foreground">{getValue<number | null>() ?? "-"}</span>
+                        ),
+                    },
+                    {
+                        id: "starting_qty",
+                        accessorKey: "starting_qty",
+                        size: 100,
+                        header: () => (
+                            <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
+                                Starting Qty.
+                            </p>
+                        ),
+                        cell: ({ getValue }) => (
+                            <span className="text-foreground">{getValue<number | null>() ?? "-"}</span>
+                        ),
+                    },
+                    {
+                        id: "ending_qty",
+                        accessorKey: "ending_qty",
+                        size: 100,
+                        header: () => (
+                            <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
+                                Ending Qty.
+                            </p>
+                        ),
+                        cell: ({ getValue }) => (
+                            <span className="text-foreground">{getValue<number | null>() ?? "-"}</span>
+                        ),
+                    },
+                    {
+                        id: "actions",
+                        size: 90,
+                        header: () => <p className="column-title">Actions</p>,
+                        enableSorting: false,
+                        enableColumnFilter: false,
+                        cell: ({ row }) => (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                title="Edit item"
+                                className="h-8 w-8 p-0"
+                                onClick={() => openEditDialog(row.original)}
+                            >
+                                <Pencil className="h-4 w-4" />
+                                <span className="sr-only">Edit item</span>
+                            </Button>
+                        ),
+                    },
+                ],
             [handleCopyItemCode, openEditDialog, typeOptions]
         ),
         refineCoreProps: {
