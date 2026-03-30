@@ -4,6 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -26,6 +34,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { supabaseClient } from "@/providers/supabase-client";
 import { useGetIdentity, useGo, useInvalidate, useNotification } from "@refinedev/core";
+import { Badge } from "@/components/ui/badge";
 
 type MaterialChargeTicketHeader = {
     district: string;
@@ -51,9 +60,20 @@ type MaterialChargeTicketItem = {
     qty: number | null;
     total_cost: number | null;
     c2: number | null;
+    deduct_from: "ending_qty" | "buffer_stock";
     purpose: string;
     remarks: string;
     notes: string;
+};
+
+type AvailabilityStatus = "in_stock" | "insufficient" | "missing";
+
+type AvailabilityInfo = {
+    status: AvailabilityStatus;
+    availableQty?: number | null;
+    bufferStock?: number | null;
+    endingQty?: number | null;
+    deductFrom?: "ending_qty" | "buffer_stock";
 };
 
 const EMPTY_HEADER: MaterialChargeTicketHeader = {
@@ -136,6 +156,8 @@ const normalizeCell = (value: string) =>
         .toLowerCase()
         .replace(/\s+/g, "")
         .replace(/[^a-z0-9#/.:_-]/g, "");
+
+const normalizeItemCode = (value: string) => value.trim().toUpperCase();
 
 const normalizeRows = (rows: Array<Array<string | number | null | undefined>>) =>
     rows
@@ -240,6 +262,7 @@ const parseItemsFromTable = (rows: string[][]) => {
             qty: null,
             total_cost: null,
             c2: null,
+            deduct_from: "ending_qty",
             purpose: "",
             remarks: "",
             notes: "",
@@ -253,7 +276,9 @@ const parseItemsFromTable = (rows: string[][]) => {
             const value = cell.trim();
             if (!value) return;
 
-            if (key === "unit_cost" || key === "qty" || key === "total_cost" || key === "c2") {
+            if (key === "deduct_from") {
+                item.deduct_from = value.toLowerCase().includes("buffer") ? "buffer_stock" : "ending_qty";
+            } else if (key === "unit_cost" || key === "qty" || key === "total_cost" || key === "c2") {
                 item[key] = parseNumber(value);
             } else {
                 item[key] = value;
@@ -365,6 +390,8 @@ const IssueReturnCreatePage = () => {
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [errorDialogOpen, setErrorDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [availabilityMap, setAvailabilityMap] = useState<Record<string, AvailabilityInfo>>({});
+    const [availabilityStatus, setAvailabilityStatus] = useState<"idle" | "loading" | "error">("idle");
     const { data: identity } = useGetIdentity<{ id?: string | number }>();
     const { open } = useNotification();
     const invalidate = useInvalidate();
@@ -432,6 +459,134 @@ const IssueReturnCreatePage = () => {
     const totalQty = useMemo(() => sumNumbers(ticketItems.map((item) => item.qty)), [ticketItems]);
     const totalCost = useMemo(() => sumNumbers(ticketItems.map((item) => item.total_cost)), [ticketItems]);
 
+    const handleDeductFromChange = (itemId: string, value: "ending_qty" | "buffer_stock") => {
+        setTicketItems((prev) =>
+            prev.map((item) =>
+                item.id === itemId ? { ...item, deduct_from: value } : item
+            )
+        );
+    };
+
+    useEffect(() => {
+        const uniqueCodes = Array.from(
+            new Set(
+                ticketItems
+                    .map((item) => (item.item_code ? normalizeItemCode(item.item_code) : ""))
+                    .filter(Boolean)
+            )
+        );
+
+        if (uniqueCodes.length === 0) {
+            setAvailabilityMap({});
+            setAvailabilityStatus("idle");
+            return;
+        }
+
+        let isActive = true;
+
+        const fetchAvailability = async () => {
+            setAvailabilityStatus("loading");
+            const { data: serverTimestamp, error: timestampError } =
+                await supabaseClient.rpc("get_server_timestamp");
+
+            if (timestampError || !serverTimestamp) {
+                if (isActive) {
+                    setAvailabilityMap({});
+                    setAvailabilityStatus("error");
+                }
+                return;
+            }
+
+            const serverDate = new Date(serverTimestamp);
+            const month = serverDate.getMonth() + 1;
+            const year = serverDate.getFullYear();
+
+            const { data: itemsData } = await supabaseClient
+                .from("items")
+                .select("id,item_code")
+                .in("item_code", uniqueCodes);
+
+            const itemIdByCode = new Map<string, string>();
+            (itemsData ?? []).forEach((row) => {
+                if (row.item_code) {
+                    itemIdByCode.set(normalizeItemCode(row.item_code), row.id);
+                }
+            });
+
+            const itemIds = Array.from(new Set(itemIdByCode.values()));
+            const inventoryByItemId = new Map<string, { endingQty: number; bufferStock: number }>();
+
+            if (itemIds.length > 0) {
+                const { data: inventoryRows } = await supabaseClient
+                    .from("inventory_records")
+                    .select("item_id, ending_qty, buffer_stock")
+                    .in("item_id", itemIds)
+                    .eq("month", month)
+                    .eq("year", year);
+
+                (inventoryRows ?? []).forEach((row) => {
+                    inventoryByItemId.set(row.item_id, {
+                        endingQty: row.ending_qty ?? 0,
+                        bufferStock: row.buffer_stock ?? 0,
+                    });
+                });
+            }
+
+            const nextAvailability: Record<string, AvailabilityInfo> = {};
+
+            ticketItems.forEach((item) => {
+                const code = item.item_code ? normalizeItemCode(item.item_code) : "";
+                if (!code) return;
+
+                const itemId = itemIdByCode.get(code);
+                if (!itemId) {
+                    nextAvailability[item.id] = { status: "missing" };
+                    return;
+                }
+
+                const inventory = inventoryByItemId.get(itemId);
+                if (!inventory) {
+                    nextAvailability[item.id] = { status: "missing" };
+                    return;
+                }
+
+                const requestedQty = item.qty ?? 0;
+                const deductFrom = item.deduct_from ?? "ending_qty";
+                const effectiveAvailable =
+                    deductFrom === "buffer_stock" ? inventory.bufferStock : inventory.endingQty;
+                if (effectiveAvailable - requestedQty < 0) {
+                    nextAvailability[item.id] = {
+                        status: "insufficient",
+                        availableQty: effectiveAvailable,
+                        bufferStock: inventory.bufferStock,
+                        endingQty: inventory.endingQty,
+                        deductFrom,
+                    };
+                    return;
+                }
+
+                nextAvailability[item.id] = {
+                    status: "in_stock",
+                    availableQty: effectiveAvailable,
+                    bufferStock: inventory.bufferStock,
+                    endingQty: inventory.endingQty,
+                    deductFrom,
+                };
+            });
+
+            if (isActive) {
+                setAvailabilityMap(nextAvailability);
+                setAvailabilityStatus("idle");
+            }
+        };
+
+        fetchAvailability();
+
+        return () => {
+            isActive = false;
+        };
+    }, [ticketItems]);
+
     const validateItems = () => {
         const errors: string[] = [];
         if (ticketItems.length === 0) {
@@ -441,6 +596,9 @@ const IssueReturnCreatePage = () => {
         ticketItems.forEach((item, index) => {
             if (!item.item_code?.trim()) {
                 errors.push(`Row ${index + 1}: Missing item code.`);
+            }
+            if (!item.deduct_from) {
+                errors.push(`Row ${index + 1}: Deduct from is required.`);
             }
             if (item.qty == null || Number.isNaN(item.qty) || item.qty <= 0) {
                 errors.push(`Row ${index + 1}: Quantity must be greater than 0.`);
@@ -476,6 +634,7 @@ const IssueReturnCreatePage = () => {
             qty: item.qty ?? null,
             total_cost: item.total_cost ?? null,
             c2: item.c2 ?? null,
+            deduct_from: item.deduct_from ?? "ending_qty",
             remarks: item.notes || null,
         }));
 
@@ -616,7 +775,7 @@ const IssueReturnCreatePage = () => {
         <CreateView className="item-view">
             <CreateViewHeader title="MCT" />
             <div className="my-4 flex items-center">
-                <Card className="w-full max-w-5xl mx-auto item-form-card gap-0 overflow-hidden border-border/80 shadow-sm py-0">
+                <Card className="w-full max-w-7xl mx-auto item-form-card gap-0 overflow-hidden border-border/80 shadow-sm py-0">
                     <CardHeader className="border-b pt-6">
                         <CardTitle>Material Charge Ticket</CardTitle>
                         <CardDescription>
@@ -694,12 +853,13 @@ const IssueReturnCreatePage = () => {
                                             <TableHead className="text-right">Total Cost</TableHead>
                                             <TableHead className="text-right">C2</TableHead>
                                             <TableHead>Remarks</TableHead>
+                                            <TableHead>Deduct From</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {ticketItems.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={9} className="py-8 text-center text-sm text-muted-foreground">
+                                                <TableCell colSpan={10} className="py-8 text-center text-sm text-muted-foreground">
                                                     No item rows detected yet.
                                                 </TableCell>
                                             </TableRow>
@@ -707,7 +867,60 @@ const IssueReturnCreatePage = () => {
                                             ticketItems.map((item, index) => (
                                                 <TableRow key={item.id}>
                                                     <TableCell className="text-center text-muted-foreground">{index + 1}</TableCell>
-                                                    <TableCell className="font-medium">{item.item_code || "-"}</TableCell>
+                                                    <TableCell>
+                                                        {(() => {
+                                                            const availability = availabilityMap[item.id];
+                                                            const status = availability?.status;
+                                                            const label = !availability
+                                                                ? availabilityStatus === "loading"
+                                                                    ? "Checking..."
+                                                                    : "No record"
+                                                                : availability.status === "in_stock"
+                                                                    ? "In stock"
+                                                                    : availability.status === "insufficient"
+                                                                        ? "Insufficient"
+                                                                        : "No record";
+                                                            const availableText =
+                                                                availability?.endingQty != null
+                                                                    ? `Available (Ending): ${availability.endingQty}`
+                                                                    : null;
+                                                            const bufferText =
+                                                                availability?.bufferStock != null
+                                                                    ? `Buffer stock: ${availability.bufferStock}`
+                                                                    : null;
+                                                            const colorClass =
+                                                                status === "in_stock"
+                                                                    ? "text-emerald-600"
+                                                                    : status === "insufficient"
+                                                                        ? "text-destructive"
+                                                                        : "text-amber-600";
+
+                                                            return (
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <span className={`font-medium ${colorClass}`}>
+                                                                            {item.item_code || "-"}
+                                                                        </span>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent side="top" align="start">
+                                                                        <div className="grid gap-0.5">
+                                                                            <span className="text-xs font-semibold">{label}</span>
+                                                                            {availableText ? (
+                                                                                <span className="text-xs text-primary-foreground/80">
+                                                                                    {availableText}
+                                                                                </span>
+                                                                            ) : null}
+                                                                            {bufferText ? (
+                                                                                <span className="text-xs text-primary-foreground/80">
+                                                                                    {bufferText}
+                                                                                </span>
+                                                                            ) : null}
+                                                                        </div>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            );
+                                                        })()}
+                                                    </TableCell>
                                                     <TableCell className="min-w-[220px] whitespace-normal">{item.particulars || "-"}</TableCell>
                                                     <TableCell>{item.unit || "-"}</TableCell>
                                                     <TableCell className="text-right">{formatDecimal(item.unit_cost)}</TableCell>
@@ -715,6 +928,25 @@ const IssueReturnCreatePage = () => {
                                                     <TableCell className="text-right">{formatDecimal(item.total_cost)}</TableCell>
                                                     <TableCell className="text-right">{formatC2(item.c2)}</TableCell>
                                                     <TableCell className="min-w-[160px] whitespace-normal">{item.notes || "-"}</TableCell>
+                                                    <TableCell className="whitespace-nowrap py-1">
+                                                        <Select
+                                                            value={item.deduct_from}
+                                                            onValueChange={(value) =>
+                                                                handleDeductFromChange(
+                                                                    item.id,
+                                                                    value as "ending_qty" | "buffer_stock"
+                                                                )
+                                                            }
+                                                        >
+                                                            <SelectTrigger className="h-8 px-2">
+                                                                <SelectValue placeholder="Deduct from" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="ending_qty">Ending Qty</SelectItem>
+                                                                <SelectItem value="buffer_stock">Buffer Stock</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </TableCell>
                                                 </TableRow>
                                             ))
                                         )}
@@ -733,6 +965,7 @@ const IssueReturnCreatePage = () => {
                                                 <TableCell className="text-right text-sm font-semibold">
                                                     {formatDecimal(totalCost)}
                                                 </TableCell>
+                                                <TableCell />
                                                 <TableCell />
                                                 <TableCell />
                                             </TableRow>

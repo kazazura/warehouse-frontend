@@ -27,6 +27,7 @@ create table if not exists public.mct_items (
     qty numeric,
     total_cost numeric,
     c2 numeric,
+    deduct_from text not null default 'ending_qty',
     remarks text,
     created_at timestamptz not null default now()
 );
@@ -35,6 +36,8 @@ create index if not exists mct_items_mct_id_idx on public.mct_items(mct_id);
 create index if not exists mct_items_item_id_idx on public.mct_items(item_id);
 
 alter table public.mct_items add column if not exists c2 numeric;
+alter table public.mct_items add column if not exists deduct_from text;
+alter table public.mct_items alter column deduct_from set default 'ending_qty';
 create unique index if not exists mcts_mct_rel_number_uniq
     on public.mcts (mct_rel_number)
     where mct_rel_number is not null and mct_rel_number <> '';
@@ -199,20 +202,23 @@ begin
     with items_input as (
         select
             upper(trim(coalesce(value->>'item_code',''))) as item_code,
-            coalesce(nullif(value->>'qty','')::numeric, 0) as qty
+            coalesce(nullif(value->>'qty','')::numeric, 0) as qty,
+            coalesce(nullif(value->>'deduct_from',''), 'ending_qty') as deduct_from
         from jsonb_array_elements(p_items) as value
     ),
     items_agg as (
-        select i.id as item_id, ii.item_code, sum(ii.qty) as total_qty
+        select i.id as item_id, ii.item_code, ii.deduct_from, sum(ii.qty) as total_qty
         from items_input ii
         join public.items i on upper(i.item_code) = ii.item_code
         where ii.item_code <> ''
-        group by i.id, ii.item_code
+        group by i.id, ii.item_code, ii.deduct_from
     ),
     inventory_join as (
         select
             items_agg.item_code,
+            items_agg.deduct_from,
             coalesce(ir.ending_qty, 0) as ending_qty,
+            coalesce(ir.buffer_stock, 0) as buffer_stock,
             items_agg.total_qty
         from items_agg
         join public.inventory_records ir
@@ -223,7 +229,7 @@ begin
     select array_agg(item_code)
     into insufficient_inventory_codes
     from inventory_join
-    where ending_qty - total_qty < 0;
+    where (case when deduct_from = 'buffer_stock' then buffer_stock else ending_qty end) - total_qty < 0;
 
     if insufficient_inventory_codes is not null then
         raise exception 'insufficient_inventory:%', array_to_string(insufficient_inventory_codes, ',');
@@ -271,11 +277,12 @@ begin
             nullif(value->>'qty','')::numeric as qty,
             nullif(value->>'total_cost','')::numeric as total_cost,
             nullif(value->>'c2','')::numeric as c2,
+            coalesce(nullif(value->>'deduct_from',''), 'ending_qty') as deduct_from,
             value->>'remarks' as remarks
         from jsonb_array_elements(p_items) as value
     )
     insert into public.mct_items (
-        mct_id, item_id, item_code, particulars, unit, unit_cost, qty, total_cost, c2, remarks
+        mct_id, item_id, item_code, particulars, unit, unit_cost, qty, total_cost, c2, deduct_from, remarks
     )
     select
         v_mct_id,
@@ -287,6 +294,7 @@ begin
         ii.qty,
         ii.total_cost,
         ii.c2,
+        ii.deduct_from,
         ii.remarks
     from items_input ii
     join public.items i on upper(i.item_code) = ii.item_code
@@ -295,18 +303,26 @@ begin
     with items_input as (
         select
             upper(trim(coalesce(value->>'item_code',''))) as item_code,
-            coalesce(nullif(value->>'qty','')::numeric, 0) as qty
+            coalesce(nullif(value->>'qty','')::numeric, 0) as qty,
+            coalesce(nullif(value->>'deduct_from',''), 'ending_qty') as deduct_from
         from jsonb_array_elements(p_items) as value
     ),
     items_agg as (
-        select i.id as item_id, sum(ii.qty) as total_qty
+        select i.id as item_id, ii.deduct_from, sum(ii.qty) as total_qty
         from items_input ii
         join public.items i on upper(i.item_code) = ii.item_code
         where ii.item_code <> ''
-        group by i.id
+        group by i.id, ii.deduct_from
     )
     update public.inventory_records ir
-    set ending_qty = coalesce(ir.ending_qty, 0) - items_agg.total_qty
+    set ending_qty = case
+        when items_agg.deduct_from = 'ending_qty' then coalesce(ir.ending_qty, 0) - items_agg.total_qty
+        else ir.ending_qty
+    end,
+        buffer_stock = case
+            when items_agg.deduct_from = 'buffer_stock' then coalesce(ir.buffer_stock, 0) - items_agg.total_qty
+            else ir.buffer_stock
+        end
     from items_agg
     where ir.item_id = items_agg.item_id
       and ir.month = v_month
