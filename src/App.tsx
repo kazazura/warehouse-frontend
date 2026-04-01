@@ -30,6 +30,7 @@ import UserCreate from "./pages/users/create";
 import ProfilePage from "./pages/profile";
 import ItemMovementListPage from "./pages/item-movements/list";
 import ItemMovementCreatePage from "./pages/item-movements/create";
+import ItemMovementHistoryPage from "./pages/item-movements/history";
 
 const isAdminRole = (role?: string | null) => (role ?? "").toLowerCase() === "admin";
 
@@ -145,6 +146,7 @@ function App() {
 								</Route>
 								<Route path="issue-return" element={<ItemMovementListPage />} />
 								<Route path="issue-return/create" element={<ItemMovementCreatePage />} />
+								<Route path="issue-return/history" element={<ItemMovementHistoryPage />} />
 								<Route path="item-movements/*" element={<NavigateToResource resource="issue_return" />} />
 								<Route path="users" element={<AdminRouteGuard />}>
 									<Route index element={<UserList />} />
