@@ -103,6 +103,19 @@ const getErrorMessage = (error: unknown) => {
     return "Unknown error";
 };
 
+const formatNumber = (value: number | null | undefined) => {
+    if (value == null || Number.isNaN(value)) return "-";
+    return value.toLocaleString("en-US", { maximumFractionDigits: 0 });
+};
+
+const formatMoney = (value: number | null | undefined) => {
+    if (value == null || Number.isNaN(value)) return "-";
+    return value.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+};
+
 const buildDateFilters = (
     selectedYear: string,
     selectedMonth: string
@@ -407,12 +420,8 @@ const ItemList = () => {
                             </p>
                         ),
                         cell: ({ getValue }) => (
-                            <span className="text-foreground">
-                                {(() => {
-                                    const value = getValue<number | null>();
-                                    if (value == null || Number.isNaN(value)) return "-";
-                                    return value.toFixed(2);
-                                })()}
+                            <span className="text-right tabular-nums text-foreground">
+                                {formatMoney(getValue<number | null>())}
                             </span>
                         ),
                     },
@@ -426,7 +435,9 @@ const ItemList = () => {
                             </p>
                         ),
                         cell: ({ getValue }) => (
-                            <span className="text-foreground">{getValue<number | null>() ?? "-"}</span>
+                            <span className="text-right tabular-nums text-foreground">
+                                {formatNumber(getValue<number | null>())}
+                            </span>
                         ),
                     },
                     {
@@ -439,7 +450,9 @@ const ItemList = () => {
                             </p>
                         ),
                         cell: ({ getValue }) => (
-                            <span className="text-foreground">{getValue<number | null>() ?? "-"}</span>
+                            <span className="text-right tabular-nums text-foreground">
+                                {formatNumber(getValue<number | null>())}
+                            </span>
                         ),
                     },
                     {
@@ -452,7 +465,9 @@ const ItemList = () => {
                             </p>
                         ),
                         cell: ({ getValue }) => (
-                            <span className="text-foreground">{getValue<number | null>() ?? "-"}</span>
+                            <span className="text-right tabular-nums text-foreground">
+                                {formatNumber(getValue<number | null>())}
+                            </span>
                         ),
                     },
                     {
