@@ -9,11 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { History, Plus, RotateCcw, Search } from "lucide-react";
 import { useTable } from "@refinedev/react-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useList } from "@refinedev/core";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CrudFilters, useGetIdentity, useInvalidate, useList, useNotification, useOne } from "@refinedev/core";
+import { useNavigate } from "react-router";
+import { supabaseClient } from "@/providers/supabase-client";
 
 type MctRow = {
     id: string;
@@ -29,7 +32,13 @@ type MctRow = {
     so_number: string | null;
     purpose: string | null;
     notes: string | null;
+    created_by: string | null;
     created_at: string;
+    status: string | null;
+    mct_month: number | null;
+    mct_year: number | null;
+    rolled_back_at: string | null;
+    rolled_back_by: string | null;
 };
 
 type MctItemRow = {
@@ -45,13 +54,39 @@ type MctItemRow = {
     remarks: string | null;
 };
 
+type UserRow = {
+    id: string;
+    name: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+    role: string | null;
+};
+
 const ItemMovementListPage = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
     const [selectedMct, setSelectedMct] = useState<MctRow | null>(null);
     const [detailOpen, setDetailOpen] = useState(false);
+    const [rollbackOpen, setRollbackOpen] = useState(false);
+    const [rollbackTarget, setRollbackTarget] = useState<MctRow | null>(null);
     const purposeRef = useRef<HTMLTextAreaElement | null>(null);
     const notesRef = useRef<HTMLTextAreaElement | null>(null);
+    const navigate = useNavigate();
+    const { data: identity } = useGetIdentity<{ id?: string | number }>();
+    const identityId = identity?.id ? String(identity.id) : "";
+    const invalidate = useInvalidate();
+    const { open } = useNotification();
+
+    const { result: currentUserResult } = useOne<UserRow>({
+        resource: "users",
+        id: identityId,
+        queryOptions: {
+            enabled: Boolean(identityId),
+        },
+    });
+    const normalizedRole = (currentUserResult?.role ?? "").toLowerCase();
+    const isAdmin = normalizedRole === "admin";
 
     const { result: mctItemsResult, query: mctItemsQuery } = useList<MctItemRow>({
         resource: "mct_items",
@@ -61,6 +96,17 @@ const ItemMovementListPage = () => {
             enabled: Boolean(selectedMct?.id),
         },
     });
+
+    const { result: usersResult } = useList<UserRow>({
+        resource: "users",
+        pagination: { mode: "off" },
+    });
+
+    const { result: mctOptionsResult } = useList<MctRow>({
+        resource: "mcts",
+        pagination: { mode: "off" },
+    });
+
 
     const mctItems = mctItemsResult?.data ?? [];
     const totalQty = useMemo(
@@ -87,9 +133,84 @@ const ItemMovementListPage = () => {
         });
     };
 
+    const formatDate = useCallback((value: string | null | undefined) => {
+        if (!value) return "-";
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return value;
+        return parsed.toLocaleDateString("en-US", {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+        });
+    }, []);
+
+    const userLabelMap = useMemo(() => {
+        const map = new Map<string, string>();
+        for (const user of usersResult?.data ?? []) {
+            const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
+            const label = user.name?.trim() || fullName || user.email?.trim() || user.id;
+            map.set(user.id, label);
+        }
+        return map;
+    }, [usersResult?.data]);
+
+    const getUserLabel = useCallback((userId: string | null | undefined) => {
+        if (!userId) return "-";
+        return userLabelMap.get(userId) ?? userId;
+    }, [userLabelMap]);
+
     const openDetails = (mct: MctRow) => {
         setSelectedMct(mct);
         setDetailOpen(true);
+    };
+
+    const canRollback = (mct: MctRow) => {
+        if (!identityId) return false;
+        if (mct.status && mct.status !== "active") return false;
+        return isAdmin || mct.created_by === identityId;
+    };
+
+    const openRollbackDialog = (mct: MctRow) => {
+        setRollbackTarget(mct);
+        setRollbackOpen(true);
+    };
+
+    const handleRollback = async () => {
+        if (!rollbackTarget) return;
+        try {
+            const { error } = await supabaseClient.rpc("rollback_mct_transaction", {
+                p_mct_id: rollbackTarget.id,
+            });
+
+            if (error) {
+                open?.({
+                    type: "error",
+                    message: "Rollback failed",
+                    description: error.message,
+                });
+                return;
+            }
+
+            open?.({
+                type: "success",
+                message: "MCT rolled back",
+                description: "Inventory quantities have been restored.",
+            });
+            setRollbackOpen(false);
+            setRollbackTarget(null);
+            if (detailOpen) {
+                setDetailOpen(false);
+                setSelectedMct(null);
+            }
+            await invalidate({ resource: "mcts", invalidates: ["list"] });
+            await invalidate({ resource: "inventory_records", invalidates: ["list"] });
+        } catch (error) {
+            open?.({
+                type: "error",
+                message: "Rollback failed",
+                description: error instanceof Error ? error.message : "Unable to rollback MCT.",
+            });
+        }
     };
 
     const renderClickableCell = (value: string | null | undefined, row: MctRow) => (
@@ -121,9 +242,16 @@ const ItemMovementListPage = () => {
         );
     };
 
-    const mctTable = useTable<MctRow>({
-        columns: useMemo<ColumnDef<MctRow>[]>(
-            () => [
+    const requisitionerOptions = useMemo(() => {
+        const rows = mctOptionsResult?.data ?? [];
+        const unique = Array.from(
+            new Set(rows.map((row) => row.requisitioner).filter(Boolean))
+        ) as string[];
+        return unique.map((value) => ({ label: value, value }));
+    }, [mctOptionsResult?.data]);
+
+    const columns = useMemo<ColumnDef<MctRow>[]>(
+        () => [
                 {
                     id: "mct_rel_number",
                     accessorKey: "mct_rel_number",
@@ -146,36 +274,21 @@ const ItemMovementListPage = () => {
                     cell: ({ row, getValue }) => renderBadgeCell(getValue<string>(), row.original),
                 },
                 {
-                    id: "district",
-                    accessorKey: "district",
-                    size: 100,
-                    header: () => <p className="column-title">District</p>,
-                    cell: ({ row, getValue }) => renderClickableCell(getValue<string>(), row.original),
-                },
-                {
-                    id: "department",
-                    accessorKey: "department",
-                    size: 170,
-                    header: () => <p className="column-title">Department</p>,
-                    meta: {
-                        cellInnerClassName: "whitespace-normal break-words",
-                    },
+                    id: "release_date",
+                    accessorKey: "release_date",
+                    size: 140,
+                    header: () => <p className="column-title">Rel. Date</p>,
                     cell: ({ row, getValue }) => (
                         <button
                             type="button"
-                            className="w-full text-left whitespace-normal break-words"
+                            className="w-full text-left"
                             onClick={() => openDetails(row.original)}
                         >
-                            {getValue<string>() ?? "-"}
+                            <Badge variant="secondary" className="font-medium">
+                                {formatDate(getValue<string>())}
+                            </Badge>
                         </button>
                     ),
-                },
-                {
-                    id: "request_date",
-                    accessorKey: "request_date",
-                    size: 140,
-                    header: () => <p className="column-title">Req. Date</p>,
-                    cell: ({ row, getValue }) => renderClickableCell(getValue<string>(), row.original),
                 },
                 {
                     id: "requisitioner",
@@ -199,7 +312,7 @@ const ItemMovementListPage = () => {
                     cell: ({ row, getValue }) => (
                         <button
                             type="button"
-                            className="w-full text-left whitespace-normal break-words"
+                            className="w-full text-left whitespace-normal break-words font-medium text-foreground"
                             onClick={() => openDetails(row.original)}
                         >
                             {getValue<string>() ?? "-"}
@@ -209,7 +322,7 @@ const ItemMovementListPage = () => {
                 {
                     id: "purpose",
                     accessorKey: "purpose",
-                    size: 260,
+                    size: 320,
                     header: () => <p className="column-title">Purpose</p>,
                     meta: {
                         cellInnerClassName: "whitespace-normal break-words",
@@ -217,32 +330,77 @@ const ItemMovementListPage = () => {
                     cell: ({ row, getValue }) => (
                         <button
                             type="button"
-                            className="w-full text-left whitespace-normal break-words"
+                            className="w-full text-left whitespace-normal break-words text-sm text-muted-foreground line-clamp-2"
                             onClick={() => openDetails(row.original)}
                         >
                             {getValue<string>() ?? "-"}
                         </button>
                     ),
                 },
-            ],
-            []
-        ),
+                {
+                    id: "created_at",
+                    accessorKey: "created_at",
+                    size: 160,
+                    header: () => <p className="column-title">Add Date</p>,
+                    cell: ({ row, getValue }) => (
+                        <button
+                            type="button"
+                            className="w-full text-left"
+                            onClick={() => openDetails(row.original)}
+                        >
+                            <Badge variant="outline" className="font-medium">
+                                {formatDate(getValue<string>())}
+                            </Badge>
+                        </button>
+                    ),
+                },
+                {
+                    id: "created_by",
+                    accessorKey: "created_by",
+                    size: 200,
+                    header: () => <p className="column-title">Added By</p>,
+                    cell: ({ row, getValue }) => {
+                        const label = getUserLabel(getValue<string>());
+                        const mct = row.original;
+                        return (
+                            <div className="grid gap-1">
+                                <button
+                                    type="button"
+                                    className="w-full text-left font-medium"
+                                    onClick={() => openDetails(mct)}
+                                >
+                                    {label}
+                                </button>
+                                {canRollback(mct) ? (
+                                    <button
+                                        type="button"
+                                        className="inline-flex items-center gap-1 text-xs font-semibold text-destructive hover:underline"
+                                        onClick={() => openRollbackDialog(mct)}
+                                    >
+                                        <RotateCcw className="h-3 w-3" />
+                                        Rollback
+                                    </button>
+                                ) : null}
+                            </div>
+                        );
+                    },
+                },
+        ],
+        [getUserLabel, formatDate, requisitionerOptions]
+    );
+
+    const mctTable = useTable<MctRow>({
+        columns,
         refineCoreProps: {
             resource: "mcts",
             pagination: { pageSize: 10, mode: "server" },
             sorters: { initial: [{ field: "created_at", order: "desc" }] },
-            filters: { mode: "server" },
+            filters: {
+                mode: "server",
+                initial: [{ field: "status", operator: "eq", value: "active" }],
+            },
         },
     });
-
-    const requisitionerOptions = useMemo(() => {
-        const rows = mctTable.refineCore.tableQuery.data?.data ?? [];
-        const unique = Array.from(
-            new Set(rows.map((row) => row.requisitioner).filter(Boolean))
-        ) as string[];
-        return unique.map((value) => ({ label: value, value }));
-    }, [mctTable.refineCore.tableQuery.data?.data]);
-
     const listError = mctTable.refineCore.tableQuery.error instanceof Error
         ? mctTable.refineCore.tableQuery.error.message
         : null;
@@ -255,31 +413,40 @@ const ItemMovementListPage = () => {
         return () => clearTimeout(timeoutId);
     }, [searchQuery]);
 
-    useEffect(() => {
-        if (!debouncedSearchQuery) {
-            mctTable.refineCore.setFilters([], "replace");
+    const applySearchFilters = useCallback((value: string) => {
+        const normalized = value.trim();
+        if (!normalized) {
+            mctTable.refineCore.setFilters(
+                [{ field: "status", operator: "eq", value: "active" }],
+                "replace"
+            );
             return;
         }
 
         mctTable.refineCore.setFilters(
             [
+                { field: "status", operator: "eq", value: "active" },
                 {
                     operator: "or",
                     value: [
-                        { field: "mct_rel_number", operator: "contains", value: debouncedSearchQuery },
-                        { field: "request_number", operator: "contains", value: debouncedSearchQuery },
-                        { field: "district", operator: "contains", value: debouncedSearchQuery },
-                        { field: "department", operator: "contains", value: debouncedSearchQuery },
-                        { field: "requisitioner", operator: "contains", value: debouncedSearchQuery },
-                        { field: "purpose", operator: "contains", value: debouncedSearchQuery },
-                        { field: "request_date", operator: "contains", value: debouncedSearchQuery },
-                        { field: "release_date", operator: "contains", value: debouncedSearchQuery },
+                        { field: "mct_rel_number", operator: "contains", value: normalized },
+                        { field: "request_number", operator: "contains", value: normalized },
+                        { field: "district", operator: "contains", value: normalized },
+                        { field: "department", operator: "contains", value: normalized },
+                        { field: "requisitioner", operator: "contains", value: normalized },
+                        { field: "purpose", operator: "contains", value: normalized },
+                        { field: "request_date", operator: "contains", value: normalized },
+                        { field: "release_date", operator: "contains", value: normalized },
                     ],
                 },
             ],
             "replace"
         );
-    }, [debouncedSearchQuery, mctTable.refineCore.setFilters]);
+    }, [mctTable.refineCore.setFilters]);
+
+    useEffect(() => {
+        applySearchFilters(debouncedSearchQuery);
+    }, [applySearchFilters, debouncedSearchQuery]);
 
     useEffect(() => {
         const resizeTextarea = (ref: { current: HTMLTextAreaElement | null }) => {
@@ -312,8 +479,18 @@ const ItemMovementListPage = () => {
                                 onChange={(event) => setSearchQuery(event.target.value)}
                             />
                         </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="font-semibold"
+                            onClick={() => navigate("/issue-return/history")}
+                        >
+                            <History className="h-4 w-4" />
+                            History
+                        </Button>
                         <CreateButton resource="issue_return">
                             <div className="flex items-center gap-2 font-semibold">
+                                <Plus className="h-4 w-4" />
                                 <span>MCT</span>
                             </div>
                         </CreateButton>
@@ -483,14 +660,60 @@ const ItemMovementListPage = () => {
                             />
                         </div>
                     </div>
-                    <DialogFooter>
-                        <button
+                    <DialogFooter className="gap-2 sm:justify-end">
+                        <Button
                             type="button"
-                            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-xs hover:bg-accent hover:text-accent-foreground"
+                            variant="outline"
                             onClick={() => setDetailOpen(false)}
                         >
                             Close
-                        </button>
+                        </Button>
+                        {selectedMct && canRollback(selectedMct) ? (
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                onClick={() => openRollbackDialog(selectedMct)}
+                            >
+                                <RotateCcw className="h-4 w-4" />
+                                Rollback
+                            </Button>
+                        ) : null}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <Dialog
+                open={rollbackOpen}
+                onOpenChange={(openState) => {
+                    setRollbackOpen(openState);
+                    if (!openState) {
+                        setRollbackTarget(null);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Rollback MCT</DialogTitle>
+                        <DialogDescription>
+                            This will restore inventory quantities and mark the MCT as rolled back.
+                            You can view it later in the history page.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:justify-end">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setRollbackOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={() => void handleRollback()}
+                        >
+                            <RotateCcw className="h-4 w-4" />
+                            Rollback MCT
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
