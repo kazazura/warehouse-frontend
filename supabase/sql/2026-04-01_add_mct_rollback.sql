@@ -288,7 +288,10 @@ declare
     v_mct public.mcts%rowtype;
     v_month int;
     v_year int;
+    v_iter_date date;
+    v_end_date date;
     missing_inventory_codes text[];
+    missing_downstream_codes text[];
 begin
     if v_actor is null then
         raise exception 'unauthenticated';
@@ -316,6 +319,8 @@ begin
 
     v_month := coalesce(v_mct.mct_month, extract(month from v_mct.created_at)::int);
     v_year := coalesce(v_mct.mct_year, extract(year from v_mct.created_at)::int);
+    v_iter_date := (make_date(v_year, v_month, 1) + interval '1 month')::date;
+    v_end_date := date_trunc('month', now())::date;
 
     with items_input as (
         select
@@ -372,6 +377,70 @@ begin
     where ir.item_id = items_agg.item_id
       and ir.month = v_month
       and ir.year = v_year;
+
+    while v_iter_date <= v_end_date loop
+        with items_input as (
+            select
+                mi.item_id,
+                mi.item_code,
+                coalesce(mi.qty, 0) as qty,
+                coalesce(nullif(mi.deduct_from, ''), 'ending_qty') as deduct_from
+            from public.mct_items mi
+            where mi.mct_id = p_mct_id
+        ),
+        items_agg as (
+            select item_id, item_code, deduct_from, sum(qty) as total_qty
+            from items_input
+            where item_id is not null
+            group by item_id, item_code, deduct_from
+        ),
+        end_qty_adjustments as (
+            select item_id, item_code, total_qty
+            from items_agg
+            where deduct_from = 'ending_qty'
+        )
+        select array_agg(distinct eqa.item_code)
+        into missing_downstream_codes
+        from end_qty_adjustments eqa
+        left join public.inventory_records ir
+            on ir.item_id = eqa.item_id
+           and ir.month = extract(month from v_iter_date)::int
+           and ir.year = extract(year from v_iter_date)::int
+        where ir.id is null;
+
+        if missing_downstream_codes is not null then
+            raise exception 'missing_downstream_inventory:%', array_to_string(missing_downstream_codes, ',');
+        end if;
+
+        with items_input as (
+            select
+                mi.item_id,
+                coalesce(mi.qty, 0) as qty,
+                coalesce(nullif(mi.deduct_from, ''), 'ending_qty') as deduct_from
+            from public.mct_items mi
+            where mi.mct_id = p_mct_id
+        ),
+        items_agg as (
+            select item_id, deduct_from, sum(qty) as total_qty
+            from items_input
+            where item_id is not null
+            group by item_id, deduct_from
+        ),
+        end_qty_adjustments as (
+            select item_id, total_qty
+            from items_agg
+            where deduct_from = 'ending_qty'
+        )
+        update public.inventory_records ir
+        set starting_qty = coalesce(ir.starting_qty, 0) + end_qty_adjustments.total_qty,
+            ending_qty = coalesce(ir.ending_qty, 0) + end_qty_adjustments.total_qty
+        from end_qty_adjustments
+        where ir.item_id = end_qty_adjustments.item_id
+          and ir.month = extract(month from v_iter_date)::int
+          and ir.year = extract(year from v_iter_date)::int;
+
+        v_iter_date := (v_iter_date + interval '1 month')::date;
+    end loop;
 
     update public.mcts
     set status = 'rolled_back',
