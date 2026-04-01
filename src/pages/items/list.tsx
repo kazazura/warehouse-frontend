@@ -674,7 +674,7 @@ const ItemList = () => {
                         />
                     </div>
 
-                    <div className="flex gap-2 w-full sm:w-auto">
+                    <div className="flex flex-wrap gap-2 w-full justify-start lg:justify-end">
                         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Filter by Month" />
