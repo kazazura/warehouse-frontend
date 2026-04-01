@@ -5,10 +5,8 @@ alter table public.inventory_records
   add column if not exists buffer_stock integer;
 
 update public.inventory_records r
-set buffer_stock = i.buffer_stock
-from public.items i
-where r.item_id = i.id
-  and r.buffer_stock is null;
+set buffer_stock = 0
+where r.buffer_stock is null;
 
 alter table public.inventory_records
   alter column buffer_stock set default 0;
@@ -27,6 +25,7 @@ select
   i.item_code,
   i.description,
   i.type,
+  r.unit_cost,
   r.month,
   r.year,
   r.starting_qty,
@@ -48,7 +47,16 @@ declare
     prev_year int := extract(year from (date_trunc('month', now() at time zone 'Asia/Manila') - interval '1 day'))::int;
     inserted_count int;
 begin
-    insert into public.inventory_records (item_id, month, year, starting_qty, ending_qty, buffer_stock, created_by)
+    insert into public.inventory_records (
+        item_id,
+        month,
+        year,
+        starting_qty,
+        ending_qty,
+        buffer_stock,
+        unit_cost,
+        created_by
+    )
     select
         i.id as item_id,
         current_month as month,
@@ -56,6 +64,7 @@ begin
         coalesce(prev.ending_qty, 0) as starting_qty,
         coalesce(prev.ending_qty, 0) as ending_qty,
         coalesce(prev.buffer_stock, 0) as buffer_stock,
+        prev.unit_cost as unit_cost,
         p_recorded_by as created_by
     from public.items i
     left join public.inventory_records prev
