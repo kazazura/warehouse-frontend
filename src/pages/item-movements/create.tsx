@@ -938,7 +938,7 @@ const IssueReturnCreatePage = () => {
                                                                 )
                                                             }
                                                         >
-                                                            <SelectTrigger className="h-8 px-2">
+                                                            <SelectTrigger className="h-8 w-30 px-2">
                                                                 <SelectValue placeholder="Deduct from" />
                                                             </SelectTrigger>
                                                             <SelectContent>
