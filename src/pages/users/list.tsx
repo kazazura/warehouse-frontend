@@ -281,7 +281,7 @@ const UserList = () => {
 					size: 250,
 					header: () => <p className="column-title">Name</p>,
 					cell: ({ row }) => (
-						<span className="text-foreground">{toDisplayName(row.original)}</span>
+						<span className="text-foreground font-medium">{toDisplayName(row.original)}</span>
 					),
 					filterFn: "includesString",
 				},
@@ -291,7 +291,7 @@ const UserList = () => {
 					size: 280,
 					header: () => <p className="column-title">Email</p>,
 					cell: ({ row }) => (
-						<span className="text-foreground">{row.original.email ?? "-"}</span>
+						<span className="text-sm text-muted-foreground">{row.original.email ?? "-"}</span>
 					),
 					filterFn: "includesString",
 				},
@@ -319,7 +319,9 @@ const UserList = () => {
 					size: 160,
 					header: () => <p className="column-title">Created</p>,
 					cell: ({ row }) => (
-						<span className="text-foreground">{toDisplayDate(row.original.created_at)}</span>
+						<Badge variant="outline" className="font-medium">
+							{toDisplayDate(row.original.created_at)}
+						</Badge>
 					),
 				},
 				{
