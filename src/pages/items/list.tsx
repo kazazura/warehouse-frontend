@@ -344,153 +344,153 @@ const ItemList = () => {
     const itemTable = useTable<ItemInventoryRowWithId>({
         columns: useMemo<ColumnDef<ItemInventoryRowWithId>[]>(
             () => [
-                    {
-                        id: "item_code",
-                        accessorKey: "item_code",
-                        size: 120,
-                        header: ({ column }) => (
-                            <div className="flex items-center gap-1">
-                                <p className="column-title ml-2 whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
-                                    Item Code
-                                </p>
-                                <DataTableSorter column={column} title={undefined} />
-                            </div>
-                        ),
-                        cell: ({ getValue }) => {
-                            const itemCode = getValue<string>() ?? "-";
-                            return (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Badge
-                                            className="cursor-pointer select-none"
-                                            onClick={() => void handleCopyItemCode(itemCode)}
-                                        >
-                                            {itemCode}
-                                        </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top" align="start" className="w-max max-w-[min(90vw,48rem)] whitespace-normal break-words">
-                                        {`Click to copy: ${itemCode}`}
-                                    </TooltipContent>
-                                </Tooltip>
-                            );
-                        },
-                    },
-                    {
-                        id: "description",
-                        accessorKey: "description",
-                        size: 400,
-                        header: () => (
-                            <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
-                                Description
+                {
+                    id: "item_code",
+                    accessorKey: "item_code",
+                    size: 120,
+                    header: ({ column }) => (
+                        <div className="flex items-center gap-1">
+                            <p className="column-title ml-2 whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
+                                Item Code
                             </p>
-                        ),
-                        cell: ({ getValue }) => (
-                            <span className="whitespace-normal break-words">{getValue<string>()}</span>
-                        ),
-                        filterFn: "includesString",
+                            <DataTableSorter column={column} title={undefined} />
+                        </div>
+                    ),
+                    cell: ({ getValue }) => {
+                        const itemCode = getValue<string>() ?? "-";
+                        return (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Badge
+                                        className="cursor-pointer select-none"
+                                        onClick={() => void handleCopyItemCode(itemCode)}
+                                    >
+                                        {itemCode}
+                                    </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" align="start" className="w-max max-w-[min(90vw,48rem)] whitespace-normal break-words">
+                                    {`Click to copy: ${itemCode}`}
+                                </TooltipContent>
+                            </Tooltip>
+                        );
                     },
-                    {
-                        id: "type",
-                        accessorKey: "type",
-                        size: 75,
-                        header: ({ column, table }) => (
-                            <div className="column-title">
-                                <span className="whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">UOM</span>
-                                <DataTableFilterCombobox
-                                    column={column}
-                                    table={table}
-                                    options={typeOptions.map((type) => ({ label: type, value: type }))}
-                                    placeholder="UOM"
-                                    operators={["eq"]}
-                                />
-                            </div>
-                        ),
-                        cell: ({ getValue }) => (
-                            <Badge variant="secondary">{getValue<string>()}</Badge>
-                        ),
-                        filterFn: "includesString",
-                    },
-                    {
-                        id: "unit_cost",
-                        accessorKey: "unit_cost",
-                        size: 100,
-                        header: () => (
-                            <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
-                                Unit Cost
-                            </p>
-                        ),
-                        cell: ({ getValue }) => (
-                            <span className="text-right tabular-nums text-foreground">
-                                {formatMoney(getValue<number | null>())}
-                            </span>
-                        ),
-                    },
-                    {
-                        id: "buffer_stock",
-                        accessorKey: "buffer_stock",
-                        size: 100,
-                        header: () => (
-                            <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
-                                Buffer Stock
-                            </p>
-                        ),
-                        cell: ({ getValue }) => (
-                            <span className="text-right tabular-nums text-foreground">
-                                {formatNumber(getValue<number | null>())}
-                            </span>
-                        ),
-                    },
-                    {
-                        id: "starting_qty",
-                        accessorKey: "starting_qty",
-                        size: 100,
-                        header: () => (
-                            <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
-                                Starting Qty.
-                            </p>
-                        ),
-                        cell: ({ getValue }) => (
-                            <span className="text-right tabular-nums text-foreground">
-                                {formatNumber(getValue<number | null>())}
-                            </span>
-                        ),
-                    },
-                    {
-                        id: "ending_qty",
-                        accessorKey: "ending_qty",
-                        size: 100,
-                        header: () => (
-                            <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
-                                Ending Qty.
-                            </p>
-                        ),
-                        cell: ({ getValue }) => (
-                            <span className="text-right tabular-nums text-foreground">
-                                {formatNumber(getValue<number | null>())}
-                            </span>
-                        ),
-                    },
-                    {
-                        id: "actions",
-                        size: 90,
-                        header: () => <p className="column-title">Actions</p>,
-                        enableSorting: false,
-                        enableColumnFilter: false,
-                        cell: ({ row }) => (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                title="Edit item"
-                                className="h-8 w-8 p-0"
-                                onClick={() => openEditDialog(row.original)}
-                            >
-                                <Pencil className="h-4 w-4" />
-                                <span className="sr-only">Edit item</span>
-                            </Button>
-                        ),
-                    },
-                ],
+                },
+                {
+                    id: "description",
+                    accessorKey: "description",
+                    size: 400,
+                    header: () => (
+                        <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
+                            Description
+                        </p>
+                    ),
+                    cell: ({ getValue }) => (
+                        <span className="whitespace-normal break-words">{getValue<string>()}</span>
+                    ),
+                    filterFn: "includesString",
+                },
+                {
+                    id: "type",
+                    accessorKey: "type",
+                    size: 75,
+                    header: ({ column, table }) => (
+                        <div className="column-title">
+                            <span className="whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">UOM</span>
+                            <DataTableFilterCombobox
+                                column={column}
+                                table={table}
+                                options={typeOptions.map((type) => ({ label: type, value: type }))}
+                                placeholder="UOM"
+                                operators={["eq"]}
+                            />
+                        </div>
+                    ),
+                    cell: ({ getValue }) => (
+                        <Badge variant="secondary">{getValue<string>()}</Badge>
+                    ),
+                    filterFn: "includesString",
+                },
+                {
+                    id: "unit_cost",
+                    accessorKey: "unit_cost",
+                    size: 100,
+                    header: () => (
+                        <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
+                            Unit Cost
+                        </p>
+                    ),
+                    cell: ({ getValue }) => (
+                        <span className="text-right tabular-nums text-foreground">
+                            {formatMoney(getValue<number | null>())}
+                        </span>
+                    ),
+                },
+                {
+                    id: "buffer_stock",
+                    accessorKey: "buffer_stock",
+                    size: 100,
+                    header: () => (
+                        <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
+                            Buffer Stock
+                        </p>
+                    ),
+                    cell: ({ getValue }) => (
+                        <span className="text-right tabular-nums text-foreground">
+                            {formatNumber(getValue<number | null>())}
+                        </span>
+                    ),
+                },
+                {
+                    id: "starting_qty",
+                    accessorKey: "starting_qty",
+                    size: 100,
+                    header: () => (
+                        <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
+                            Starting Qty.
+                        </p>
+                    ),
+                    cell: ({ getValue }) => (
+                        <span className="text-right tabular-nums text-foreground">
+                            {formatNumber(getValue<number | null>())}
+                        </span>
+                    ),
+                },
+                {
+                    id: "ending_qty",
+                    accessorKey: "ending_qty",
+                    size: 100,
+                    header: () => (
+                        <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
+                            Ending Qty.
+                        </p>
+                    ),
+                    cell: ({ getValue }) => (
+                        <span className="text-right tabular-nums text-foreground">
+                            {formatNumber(getValue<number | null>())}
+                        </span>
+                    ),
+                },
+                {
+                    id: "actions",
+                    size: 90,
+                    header: () => <p className="column-title">Actions</p>,
+                    enableSorting: false,
+                    enableColumnFilter: false,
+                    cell: ({ row }) => (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            title="Edit item"
+                            className="h-8 w-8 p-0"
+                            onClick={() => openEditDialog(row.original)}
+                        >
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Edit item</span>
+                        </Button>
+                    ),
+                },
+            ],
             [handleCopyItemCode, openEditDialog, typeOptions]
         ),
         refineCoreProps: {
@@ -537,8 +537,8 @@ const ItemList = () => {
                 typeof data === "number"
                     ? data
                     : typeof data === "string"
-                      ? Number(data)
-                      : null;
+                        ? Number(data)
+                        : null;
 
             if (insertedCount === 0) {
                 open?.({
@@ -659,132 +659,134 @@ const ItemList = () => {
     return (
         <ListView>
             <ListViewHeader title="Inventory Items" />
+            
+            <div className="grid gap-6 min-w-0">
+                <div className="intro-row">
+                    <p className="text-muted-foreground">Manage and track all items in warehouse inventory</p>
+                    <div className="actions-row">
+                        <div className="search-field">
+                            <Search className="search-icon" />
+                            <Input
+                                type="text"
+                                placeholder="Search item..."
+                                className="pl-10 w-full"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
 
-            <div className="intro-row">
-                <p className="text-muted-foreground">Manage and track all items in warehouse inventory</p>
-                <div className="actions-row">
-                    <div className="search-field">
-                        <Search className="search-icon" />
-                        <Input
-                            type="text"
-                            placeholder="Search item..."
-                            className="pl-10 w-full"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
+                        <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-start lg:justify-end">
+                            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Filter by Month" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Months</SelectItem>
+                                    {MONTHS_OPTIONS.map((month) => (
+                                        <SelectItem key={month.value} value={month.value}>
+                                            {month.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
 
-                    <div className="flex flex-wrap gap-2 w-full justify-start lg:justify-end">
-                        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Filter by Month" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Months</SelectItem>
-                                {MONTHS_OPTIONS.map((month) => (
-                                    <SelectItem key={month.value} value={month.value}>
-                                        {month.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        <Dialog
-                            open={importDialogOpen}
-                            onOpenChange={(isOpen) => {
-                                setImportDialogOpen(isOpen);
-                                handleDialogOpenChange(isOpen);
-                            }}
-                        >
-                            <DialogTrigger asChild>
-                                <Button type="button" variant="outline">
-                                    <FileSpreadsheet className="w-4 h-4" />
-                                    <span>Import Excel</span>
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="w-[calc(100vw-2rem)] max-w-xl p-4 sm:p-6">
-                                <ItemImportPanel
-                                    file={importFile}
-                                    onFileChange={setImportFile}
-                                    onCancel={() => {
-                                        handleDialogOpenChange(false);
-                                        setImportDialogOpen(false);
-                                    }}
-                                    onContinue={() => {
-                                        handleDialogOpenChange(false);
-                                        setImportDialogOpen(false);
-                                    }}
-                                    continueDisabled={!hasImportFile}
-                                />
-                            </DialogContent>
-                        </Dialog>
-
-                        {isAdmin ? (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleManualRollover}
-                                disabled={isRolloverRunning}
+                            <Dialog
+                                open={importDialogOpen}
+                                onOpenChange={(isOpen) => {
+                                    setImportDialogOpen(isOpen);
+                                    handleDialogOpenChange(isOpen);
+                                }}
                             >
-                                {isRolloverRunning ? (
-                                    <span className="inline-flex items-center gap-2">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        Running
-                                    </span>
-                                ) : (
-                                    <span className="inline-flex items-center gap-2">
-                                        <RefreshCw className="h-4 w-4" />
-                                        Rollover Month
-                                    </span>
-                                )}
-                            </Button>
-                        ) : null}
+                                <DialogTrigger asChild>
+                                    <Button type="button" variant="outline">
+                                        <FileSpreadsheet className="w-4 h-4" />
+                                        <span>Import Excel</span>
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="w-[calc(100vw-2rem)] max-w-xl p-4 sm:p-6">
+                                    <ItemImportPanel
+                                        file={importFile}
+                                        onFileChange={setImportFile}
+                                        onCancel={() => {
+                                            handleDialogOpenChange(false);
+                                            setImportDialogOpen(false);
+                                        }}
+                                        onContinue={() => {
+                                            handleDialogOpenChange(false);
+                                            setImportDialogOpen(false);
+                                        }}
+                                        continueDisabled={!hasImportFile}
+                                    />
+                                </DialogContent>
+                            </Dialog>
 
-                        <CreateButton>
-                            <div className="flex items-center gap-2 font-semibold">
-                                <Plus className="w-4 h-4" />
-                                <span>Add Item</span>
-                            </div>
-                        </CreateButton>
-
-                    </div>
-                </div>
-            </div>
-
-            <DataTable
-                table={itemTable}
-                bottomContent={
-                    <div className="-mt-px overflow-x-auto px-2">
-                        <div className="flex min-w-max items-start gap-1">
-                            <button
-                                type="button"
-                                onClick={() => setSelectedYear("all")}
-                                className={`${selectedYear === "all"
-                                    ? "relative rounded-b-lg border border-t-0 border-border bg-background px-4 py-1.5 text-sm text-foreground shadow-sm [box-shadow:inset_0_1px_0_var(--background)]"
-                                    : "relative rounded-b-lg border border-t-0 border-border bg-muted/40 px-4 py-1.5 text-sm text-muted-foreground"
-                                    }`}
-                            >
-                                All
-                            </button>
-
-                            {yearTabs.map((year) => (
-                                <button
-                                    key={year}
+                            {isAdmin ? (
+                                <Button
                                     type="button"
-                                    onClick={() => setSelectedYear(String(year))}
-                                    className={`${selectedYear === String(year)
-                                        ? "relative rounded-b-lg border border-t-0 border-border bg-background px-4 py-1.5 text-sm text-foreground shadow-sm [box-shadow:inset_0_1px_0_var(--background)]"
-                                        : "relative rounded-b-lg border border-t-0 border-border bg-muted/40 px-4 py-1.5 text-sm text-muted-foreground"
-                                        }`}
+                                    variant="outline"
+                                    onClick={handleManualRollover}
+                                    disabled={isRolloverRunning}
                                 >
-                                    {year}
-                                </button>
-                            ))}
+                                    {isRolloverRunning ? (
+                                        <span className="inline-flex items-center gap-2">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Running
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-2">
+                                            <RefreshCw className="h-4 w-4" />
+                                            Rollover Month
+                                        </span>
+                                    )}
+                                </Button>
+                            ) : null}
+
+                            <CreateButton>
+                                <div className="flex items-center gap-2 font-semibold">
+                                    <Plus className="w-4 h-4" />
+                                    <span>Add Item</span>
+                                </div>
+                            </CreateButton>
+
                         </div>
                     </div>
-                }
-            />
+                </div>
+                <div className="min-w-0">
+                    <DataTable
+                        table={itemTable}
+                        bottomContent={
+                            <div className="-mt-px overflow-x-auto px-2">
+                                <div className="flex min-w-max items-start gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedYear("all")}
+                                        className={`${selectedYear === "all"
+                                            ? "relative rounded-b-lg border border-t-0 border-border bg-background px-4 py-1.5 text-sm text-foreground shadow-sm [box-shadow:inset_0_1px_0_var(--background)]"
+                                            : "relative rounded-b-lg border border-t-0 border-border bg-muted/40 px-4 py-1.5 text-sm text-muted-foreground"
+                                            }`}
+                                    >
+                                        All
+                                    </button>
 
+                                    {yearTabs.map((year) => (
+                                        <button
+                                            key={year}
+                                            type="button"
+                                            onClick={() => setSelectedYear(String(year))}
+                                            className={`${selectedYear === String(year)
+                                                ? "relative rounded-b-lg border border-t-0 border-border bg-background px-4 py-1.5 text-sm text-foreground shadow-sm [box-shadow:inset_0_1px_0_var(--background)]"
+                                                : "relative rounded-b-lg border border-t-0 border-border bg-muted/40 px-4 py-1.5 text-sm text-muted-foreground"
+                                                }`}
+                                        >
+                                            {year}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        }
+                    />
+                </div>
+            </div>
             <Dialog
                 open={editDialogOpen}
                 onOpenChange={(openState) => {

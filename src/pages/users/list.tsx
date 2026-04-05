@@ -438,33 +438,35 @@ const UserList = () => {
 	return (
 		<ListView>
 			<ListViewHeader title="Users" />
+			<div className="grid gap-6 min-w-0">
+				<div className="intro-row">
+					<p className="text-muted-foreground">Manage and track users in the system</p>
+					<div className="actions-row">
+						<div className="search-field">
+							<Search className="search-icon" />
+							<Input
+								type="text"
+								placeholder="Search user..."
+								className="pl-10 w-full"
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+							/>
+						</div>
 
-			<div className="intro-row">
-				<p className="text-muted-foreground">Manage and track users in the system</p>
-				<div className="actions-row">
-					<div className="search-field">
-						<Search className="search-icon" />
-						<Input
-							type="text"
-							placeholder="Search user..."
-							className="pl-10 w-full"
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
-						/>
-					</div>
-
-					<div className="flex gap-2 w-full sm:w-auto">
-						<CreateButton>
-							<div className="flex items-center gap-2 font-semibold">
-								<Plus className="w-4 h-4" />
-								<span>Add User</span>
-							</div>
-						</CreateButton>
+						<div className="flex gap-2 w-full sm:w-auto">
+							<CreateButton>
+								<div className="flex items-center gap-2 font-semibold">
+									<Plus className="w-4 h-4" />
+									<span>Add User</span>
+								</div>
+							</CreateButton>
+						</div>
 					</div>
 				</div>
+				<div className="min-w-0">
+					<DataTable table={userTable} />
+				</div>
 			</div>
-
-			<DataTable table={userTable} />
 
 			<Dialog
 				open={editDialogOpen}
