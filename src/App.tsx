@@ -64,7 +64,7 @@ function App() {
 							warnWhenUnsavedChanges: true,
 							projectId: "L6Lpfe-nuWoit-1MSid6",
 							title: {
-								text: <h1 className="ml-2">ALECO WAREHOUSE</h1>,
+								text: "ALECO WAREHOUSE",
 								icon: <img src="/aleco-icon.ico" alt="Logo" className="w-6 h-6" style={{ width: '24px', height: '24px' }} />
 							}
 						}}
