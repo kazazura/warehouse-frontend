@@ -1,5 +1,5 @@
 import { ListView, ListViewHeader } from "@/components/refine-ui/views/list-view";
-import { Search, Plus, FileSpreadsheet, Pencil, Loader2, RefreshCw } from "lucide-react";
+import { Search, Plus, FileSpreadsheet, Pencil, Loader2, RefreshCw, History } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -33,6 +33,7 @@ import { useItemImport } from "@/hooks/use-item-import";
 import { ItemImportPanel } from "@/components/items/item-import-panel";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUpdate } from "@refinedev/core";
 import { supabaseClient } from "@/providers/supabase-client";
 
@@ -65,10 +66,62 @@ type ItemInventoryRowWithId = ItemInventoryRow & {
     inventory_item_id?: number | string | null;
 };
 
+type MctHistoryHeader = {
+    id: string;
+    mct_rel_number: string | null;
+    request_number: string | null;
+    release_date: string | null;
+    requisitioner: string | null;
+    purpose: string | null;
+    created_at: string | null;
+    created_by: string | null;
+    status?: string | null;
+    rolled_back_at?: string | null;
+    rolled_back_by?: string | null;
+};
+
+type ItemHistoryMctRow = {
+    id: string;
+    item_id: string | null;
+    item_code: string | null;
+    qty: number | null;
+    unit_cost: number | null;
+    total_cost: number | null;
+    c2: number | null;
+    deduct_from: string | null;
+    remarks: string | null;
+    created_at: string | null;
+    mcts: MctHistoryHeader | null;
+};
+
+type ItemHistoryMctRowDb = Omit<ItemHistoryMctRow, "mcts"> & {
+    mcts: MctHistoryHeader | MctHistoryHeader[] | null;
+};
+
+
 const isUuidLike = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
 const getDefaultMonth = () => new Date().toLocaleString("en-US", { month: "long" });
 const getDefaultYear = () => String(new Date().getFullYear());
+
+const formatDate = (value?: string | null) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+    });
+};
+
+
+const formatDelta = (value: number, isCurrency = false) => {
+    const formatted = isCurrency
+        ? value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : value.toLocaleString("en-US");
+    return value > 0 ? `+${formatted}` : formatted;
+};
 
 const readPersistedItemsFilters = (storageKey: string): ItemsListPersistedFilters | null => {
     if (typeof window === "undefined") return null;
@@ -167,6 +220,13 @@ const ItemList = () => {
         useItemImport();
     const { open } = useNotification();
     const invalidate = useInvalidate();
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const [historyItemId, setHistoryItemId] = useState<string>("");
+    const [historyItemCode, setHistoryItemCode] = useState<string>("");
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [historyError, setHistoryError] = useState<string | null>(null);
+    const [mctHistory, setMctHistory] = useState<ItemHistoryMctRow[]>([]);
+    const [historyUsers, setHistoryUsers] = useState<Record<string, UserRow>>({});
     const { data: identity } = useGetIdentity<{ id?: string | number; role?: string }>();
     const identityId = identity?.id ? String(identity.id) : "";
     const { result: userResult } = useOne<UserRow>({
@@ -197,6 +257,29 @@ const ItemList = () => {
         setEditEndingQty(item.ending_qty ?? 0);
         setEditDialogOpen(true);
     }, []);
+
+    const openHistoryDialog = useCallback(
+        (item: ItemInventoryRowWithId) => {
+            const fallbackId = item.id != null && isUuidLike(String(item.id)) ? item.id : null;
+            const resolvedId = item.item_id ?? item.inventory_item_id ?? fallbackId;
+            if (!resolvedId) {
+                open?.({
+                    type: "error",
+                    message: "History unavailable",
+                    description: "No inventory record was found for this item.",
+                });
+                return;
+            }
+
+            const label = item.item_code
+                ? `${item.item_code} — ${item.description ?? ""}`.trim()
+                : item.description ?? String(resolvedId);
+            setHistoryItemId(String(resolvedId));
+            setHistoryItemCode(label);
+            setHistoryOpen(true);
+        },
+        [open]
+    );
 
     const handleSaveEdit = useCallback(async () => {
         if (!editingItemId || !editingItem) {
@@ -341,6 +424,124 @@ const ItemList = () => {
             .sort((a, b) => a.localeCompare(b));
     }, [yearsResult.data]);
 
+    const getUserLabel = useCallback(
+        (userId: string | null | undefined) => {
+            if (!userId) return "—";
+            const user = historyUsers[userId];
+            if (!user) return userId;
+            return (
+                user.name?.trim() ||
+                [user.first_name, user.last_name].filter(Boolean).join(" ") ||
+                user.email ||
+                userId
+            );
+        },
+        [historyUsers]
+    );
+
+    useEffect(() => {
+        if (!historyOpen || !historyItemId) return;
+
+        let isMounted = true;
+        const loadHistory = async () => {
+            setHistoryLoading(true);
+            setHistoryError(null);
+            try {
+                const { data, error } = await supabaseClient
+                    .from("mct_items")
+                    .select(
+                        "id,item_id,item_code,qty,unit_cost,total_cost,c2,deduct_from,remarks,created_at,mcts(id,mct_rel_number,request_number,release_date,requisitioner,purpose,created_at,created_by,status,rolled_back_at,rolled_back_by)"
+                    )
+                    .eq("item_id", historyItemId)
+                    .order("created_at", { ascending: false });
+
+                if (error) throw error;
+                const rawRows: ItemHistoryMctRowDb[] = Array.isArray(data) ? (data as ItemHistoryMctRowDb[]) : [];
+                const mctRows: ItemHistoryMctRow[] = rawRows.map((row) => ({
+                    ...row,
+                    mcts: Array.isArray(row.mcts) ? row.mcts[0] ?? null : row.mcts ?? null,
+                }));
+
+                if (!isMounted) return;
+                setMctHistory(mctRows);
+
+                const userIds = new Set<string>();
+                mctRows.forEach((row) => {
+                    if (row.mcts?.created_by) userIds.add(row.mcts.created_by);
+                });
+
+                if (userIds.size > 0) {
+                    const { data, error } = await supabaseClient
+                        .from("users")
+                        .select("id,name,first_name,last_name,email")
+                        .in("id", Array.from(userIds));
+                    if (error) throw error;
+                    if (!isMounted) return;
+                    const mapped = (data ?? []).reduce<Record<string, UserRow>>((acc, user) => {
+                        acc[String(user.id)] = user as UserRow;
+                        return acc;
+                    }, {});
+                    setHistoryUsers(mapped);
+                }
+            } catch (error) {
+                if (!isMounted) return;
+                setHistoryError(getErrorMessage(error));
+            } finally {
+                if (!isMounted) return;
+                setHistoryLoading(false);
+            }
+        };
+
+        loadHistory();
+        return () => {
+            isMounted = false;
+        };
+    }, [historyItemId, historyOpen]);
+
+    const mctChangeEntries = useMemo(() => {
+        return mctHistory
+            .flatMap((row) => {
+                const entries: Array<{
+                    key: string;
+                    label: string;
+                    delta: number;
+                    date: string | null | undefined;
+                    actor: string | null | undefined;
+                    isRollback?: boolean;
+                }> = [];
+                const mctLabel = row.mcts?.mct_rel_number ?? "MCT";
+                const mctDate = row.mcts?.created_at ?? row.created_at;
+                if (row.qty != null) {
+                    const deductFromLabel = row.deduct_from === "buffer_stock" ? "Buffer Stock" : "Ending Qty";
+                    entries.push({
+                        key: `${row.id}-issue`,
+                        label: `${mctLabel} · Deducted from ${deductFromLabel}`,
+                        delta: -Math.abs(row.qty),
+                        date: mctDate,
+                        actor: row.mcts?.created_by,
+                    });
+                }
+                if (row.mcts?.status === "rolled_back" && row.mcts.rolled_back_at) {
+                    const deductFromLabel = row.deduct_from === "buffer_stock" ? "Buffer Stock" : "Ending Qty";
+                    entries.push({
+                        key: `${row.id}-rollback`,
+                        label: `${mctLabel} (Rollback) · Added back to ${deductFromLabel}`,
+                        delta: Math.abs(row.qty ?? 0),
+                        date: row.mcts.rolled_back_at,
+                        actor: row.mcts.rolled_back_by,
+                        isRollback: true,
+                    });
+                }
+                return entries;
+            })
+            .sort((a, b) => {
+                const dateA = a.date ? new Date(a.date).getTime() : 0;
+                const dateB = b.date ? new Date(b.date).getTime() : 0;
+                return dateB - dateA;
+            });
+    }, [mctHistory]);
+
+
     const itemTable = useTable<ItemInventoryRowWithId>({
         columns: useMemo<ColumnDef<ItemInventoryRowWithId>[]>(
             () => [
@@ -477,21 +678,34 @@ const ItemList = () => {
                     enableSorting: false,
                     enableColumnFilter: false,
                     cell: ({ row }) => (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            title="Edit item"
-                            className="h-8 w-8 p-0"
-                            onClick={() => openEditDialog(row.original)}
-                        >
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">Edit item</span>
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                title="View history"
+                                className="h-8 w-8 p-0"
+                                onClick={() => openHistoryDialog(row.original)}
+                            >
+                                <History className="h-4 w-4" />
+                                <span className="sr-only">View history</span>
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                title="Edit item"
+                                className="h-8 w-8 p-0"
+                                onClick={() => openEditDialog(row.original)}
+                            >
+                                <Pencil className="h-4 w-4" />
+                                <span className="sr-only">Edit item</span>
+                            </Button>
+                        </div>
                     ),
                 },
             ],
-            [handleCopyItemCode, openEditDialog, typeOptions]
+            [handleCopyItemCode, openEditDialog, openHistoryDialog, typeOptions]
         ),
         refineCoreProps: {
             resource: "items_inventory_all",
@@ -675,7 +889,84 @@ const ItemList = () => {
                             />
                         </div>
 
-                        <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-start lg:justify-end">
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-start lg:justify-end">
+                        <Dialog
+                            open={historyOpen}
+                            onOpenChange={(openState) => {
+                                setHistoryOpen(openState);
+                                if (!openState) {
+                                    setHistoryItemId("");
+                                    setHistoryItemCode("");
+                                    setHistoryError(null);
+                                    setMctHistory([]);
+                                }
+                            }}
+                        >
+                        <DialogContent className="w-[calc(100vw-2rem)] max-h-[85vh] overflow-hidden sm:max-w-4xl p-4 sm:p-6">
+                                <DialogHeader>
+                                    <DialogTitle>Item History</DialogTitle>
+                                    <DialogDescription>
+                                        Review material charge tickets and inventory edits for a selected item.
+                                    </DialogDescription>
+                                </DialogHeader>
+
+                                <div className="grid gap-4">
+                                    {historyItemCode ? (
+                                        <p className="text-sm text-muted-foreground break-words">
+                                            Showing history for{" "}
+                                            <span className="font-medium text-foreground">
+                                                {historyItemCode}
+                                            </span>
+                                        </p>
+                                    ) : null}
+
+                                    <div className="grid gap-4">
+                                        <div className="grid gap-2">
+                                            <p className="text-sm font-semibold text-foreground">MCT Changes</p>
+                                            {historyLoading ? (
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                    Loading history...
+                                                </div>
+                                            ) : historyError ? (
+                                                <p className="text-sm text-destructive">{historyError}</p>
+                                            ) : mctChangeEntries.length === 0 ? (
+                                                <p className="text-sm text-muted-foreground">No MCT changes recorded.</p>
+                                            ) : (
+                                                <div className="max-h-[40vh] overflow-auto rounded-lg border border-border/80 thin-scrollbar">
+                                                    <ul className="divide-y divide-border/70 text-sm">
+                                                        {mctChangeEntries.map((entry, index) => (
+                                                            <li
+                                                                key={entry.key}
+                                                                className={`flex flex-col gap-1 p-3 ${index === 0 ? "bg-muted/20" : "bg-background"}`}
+                                                            >
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    <span className="font-medium text-foreground">
+                                                                        {entry.label}
+                                                                    </span>
+                                                                    <span
+                                                                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${entry.delta > 0
+                                                                            ? "bg-emerald-50 text-emerald-700"
+                                                                            : "bg-rose-50 text-rose-700"
+                                                                            }`}
+                                                                    >
+                                                                        {formatDelta(entry.delta)}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-xs text-muted-foreground">
+                                                                    {formatDate(entry.date)} · {getUserLabel(entry.actor)}
+                                                                </div>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
                             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Filter by Month" />
