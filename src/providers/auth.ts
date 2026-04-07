@@ -1,6 +1,7 @@
 import type { AuthProvider } from "@refinedev/core";
 
 import { setRememberSessionPreference, supabaseClient } from "./supabase-client";
+import { SITE_URL } from "./constants";
 
 const normalizeAppRole = (value?: string | null): "admin" | "user" => {
 	if ((value ?? "").toLowerCase() === "admin") {
@@ -141,8 +142,9 @@ export const authProvider: AuthProvider = {
 	},
 	forgotPassword: async ({ email }) => {
 		try {
+			const baseUrl = SITE_URL || window.location.origin;
 			const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-				redirectTo: `${window.location.origin}/update-password`,
+				redirectTo: `${baseUrl.replace(/\/$/, "")}/update-password`,
 			});
 
 			if (error) {
