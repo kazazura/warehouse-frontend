@@ -1,5 +1,5 @@
 import { ListView, ListViewHeader } from "@/components/refine-ui/views/list-view";
-import { Search, Plus, FileSpreadsheet, Pencil, Loader2, RefreshCw, History } from "lucide-react";
+import { Search, Plus, FileSpreadsheet, Pencil, Loader2, RefreshCw, History, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -227,6 +227,13 @@ const ItemList = () => {
     const [historyError, setHistoryError] = useState<string | null>(null);
     const [mctHistory, setMctHistory] = useState<ItemHistoryMctRow[]>([]);
     const [historyUsers, setHistoryUsers] = useState<Record<string, UserRow>>({});
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<ItemInventoryRowWithId | null>(null);
+    const [deletingItemId, setDeletingItemId] = useState<string | number | null>(null);
+    const [actionColumnSize, setActionColumnSize] = useState(90);
+    const [actionContentEl, setActionContentEl] = useState<HTMLDivElement | null>(null);
+    const [actionContentWidth, setActionContentWidth] = useState(0);
+    const [isDesktop, setIsDesktop] = useState(false);
     const { data: identity } = useGetIdentity<{ id?: string | number; role?: string }>();
     const identityId = identity?.id ? String(identity.id) : "";
     const { result: userResult } = useOne<UserRow>({
@@ -243,9 +250,13 @@ const ItemList = () => {
     });
     const isUpdatingItem = mutation.isPending;
 
-    const openEditDialog = useCallback((item: ItemInventoryRowWithId) => {
+    const resolveItemId = useCallback((item: ItemInventoryRowWithId) => {
         const fallbackId = item.id != null && isUuidLike(String(item.id)) ? item.id : null;
-        const resolvedId = item.item_id ?? item.inventory_item_id ?? fallbackId;
+        return item.item_id ?? item.inventory_item_id ?? fallbackId;
+    }, []);
+
+    const openEditDialog = useCallback((item: ItemInventoryRowWithId) => {
+        const resolvedId = resolveItemId(item);
         setEditingItem(item);
         setEditingItemId(resolvedId);
         setEditItemCode(item.item_code ?? "");
@@ -256,12 +267,11 @@ const ItemList = () => {
         setEditStartingQty(item.starting_qty ?? 0);
         setEditEndingQty(item.ending_qty ?? 0);
         setEditDialogOpen(true);
-    }, []);
+    }, [resolveItemId]);
 
     const openHistoryDialog = useCallback(
         (item: ItemInventoryRowWithId) => {
-            const fallbackId = item.id != null && isUuidLike(String(item.id)) ? item.id : null;
-            const resolvedId = item.item_id ?? item.inventory_item_id ?? fallbackId;
+            const resolvedId = resolveItemId(item);
             if (!resolvedId) {
                 open?.({
                     type: "error",
@@ -278,8 +288,13 @@ const ItemList = () => {
             setHistoryItemCode(label);
             setHistoryOpen(true);
         },
-        [open]
+        [open, resolveItemId]
     );
+
+    const requestDeleteItem = useCallback((item: ItemInventoryRowWithId) => {
+        setItemToDelete(item);
+        setDeleteDialogOpen(true);
+    }, []);
 
     const handleSaveEdit = useCallback(async () => {
         if (!editingItemId || !editingItem) {
@@ -400,6 +415,42 @@ const ItemList = () => {
         },
         [open]
     );
+
+    const handleActionContentRef = useCallback((node: HTMLDivElement | null) => {
+        if (node) {
+            setActionContentEl(node);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const mediaQuery = window.matchMedia("(min-width: 1024px)");
+        const updateMatch = () => setIsDesktop(mediaQuery.matches);
+        updateMatch();
+        if (mediaQuery.addEventListener) {
+            mediaQuery.addEventListener("change", updateMatch);
+            return () => mediaQuery.removeEventListener("change", updateMatch);
+        }
+        mediaQuery.addListener(updateMatch);
+        return () => mediaQuery.removeListener(updateMatch);
+    }, []);
+
+    useEffect(() => {
+        const el = actionContentEl;
+        if (!el || typeof ResizeObserver === "undefined") return;
+        const updateWidth = () => {
+            setActionContentWidth(el.getBoundingClientRect().width);
+        };
+        updateWidth();
+        const observer = new ResizeObserver(updateWidth);
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [actionContentEl]);
+
+    useEffect(() => {
+        const nextSize = isDesktop ? 90 : actionContentWidth > 90 ? 120 : 90;
+        setActionColumnSize(nextSize);
+    }, [actionContentWidth, isDesktop]);
 
     const { result: yearsResult } = useList<ItemInventoryRowWithId>({
         resource: "items_inventory_all",
@@ -579,7 +630,7 @@ const ItemList = () => {
                 {
                     id: "description",
                     accessorKey: "description",
-                    size: 400,
+                    size: 450,
                     header: () => (
                         <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                             Description
@@ -614,7 +665,7 @@ const ItemList = () => {
                 {
                     id: "unit_cost",
                     accessorKey: "unit_cost",
-                    size: 100,
+                    size: 90,
                     header: () => (
                         <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                             Unit Cost
@@ -629,7 +680,7 @@ const ItemList = () => {
                 {
                     id: "buffer_stock",
                     accessorKey: "buffer_stock",
-                    size: 100,
+                    size: 90,
                     header: () => (
                         <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                             Buffer Stock
@@ -644,7 +695,7 @@ const ItemList = () => {
                 {
                     id: "starting_qty",
                     accessorKey: "starting_qty",
-                    size: 100,
+                    size: 90,
                     header: () => (
                         <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                             Starting Qty.
@@ -659,7 +710,7 @@ const ItemList = () => {
                 {
                     id: "ending_qty",
                     accessorKey: "ending_qty",
-                    size: 100,
+                    size: 90,
                     header: () => (
                         <p className="column-title whitespace-normal wrap-break-word leading-tight sm:whitespace-nowrap">
                             Ending Qty.
@@ -673,39 +724,63 @@ const ItemList = () => {
                 },
                 {
                     id: "actions",
-                    size: 90,
+                    size: actionColumnSize,
                     header: () => <p className="column-title">Actions</p>,
                     enableSorting: false,
                     enableColumnFilter: false,
                     cell: ({ row }) => (
-                        <div className="flex items-center gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                title="View history"
-                                className="h-8 w-8 p-0"
-                                onClick={() => openHistoryDialog(row.original)}
-                            >
-                                <History className="h-4 w-4" />
-                                <span className="sr-only">View history</span>
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                title="Edit item"
-                                className="h-8 w-8 p-0"
-                                onClick={() => openEditDialog(row.original)}
-                            >
-                                <Pencil className="h-4 w-4" />
-                                <span className="sr-only">Edit item</span>
-                            </Button>
+                        <div className="flex items-center">
+                            <div ref={handleActionContentRef} className="inline-flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    title="View history"
+                                    className="h-7 w-7 p-0"
+                                    onClick={() => openHistoryDialog(row.original)}
+                                >
+                                    <History className="h-3.5 w-3.5" />
+                                    <span className="sr-only">View history</span>
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    title="Edit item"
+                                    className="h-7 w-7 p-0"
+                                    onClick={() => openEditDialog(row.original)}
+                                >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    <span className="sr-only">Edit item</span>
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="sm"
+                                    title={isAdmin ? "Delete item" : "Only admins can delete items"}
+                                    className="h-7 w-7 p-0"
+                                    disabled={!isAdmin || Boolean(deletingItemId)}
+                                    onClick={() => requestDeleteItem(row.original)}
+                                >
+                                    <Trash className="h-3.5 w-3.5" />
+                                    <span className="sr-only">Delete item</span>
+                                </Button>
+                            </div>
                         </div>
                     ),
                 },
             ],
-            [handleCopyItemCode, openEditDialog, openHistoryDialog, typeOptions]
+            [
+                actionColumnSize,
+                deletingItemId,
+                handleCopyItemCode,
+                handleActionContentRef,
+                isAdmin,
+                openEditDialog,
+                openHistoryDialog,
+                requestDeleteItem,
+                typeOptions,
+            ]
         ),
         refineCoreProps: {
             resource: "items_inventory_all",
@@ -720,6 +795,57 @@ const ItemList = () => {
         },
     });
     const columnFilters = itemTable.reactTable.getState().columnFilters;
+
+    const handleDeleteItem = useCallback(async () => {
+        const target = itemToDelete;
+        if (!target) return;
+        const resolvedId = resolveItemId(target);
+        if (!resolvedId) {
+            open?.({
+                type: "error",
+                message: "Delete failed",
+                description: "Missing item ID for this row.",
+            });
+            return;
+        }
+
+        setDeletingItemId(resolvedId);
+        try {
+            const { error: inventoryError } = await supabaseClient
+                .from("inventory_records")
+                .delete()
+                .or(`item_id.eq.${resolvedId},inventory_item_id.eq.${resolvedId}`);
+            if (inventoryError) throw inventoryError;
+
+            const { error: itemError } = await supabaseClient
+                .from("items")
+                .delete()
+                .eq("id", resolvedId);
+            if (itemError) throw itemError;
+
+            open?.({
+                type: "success",
+                message: "Item deleted",
+                description: "The item has been removed from inventory.",
+            });
+
+            setDeleteDialogOpen(false);
+            setItemToDelete(null);
+            itemTable.refineCore.setCurrentPage(1);
+            itemTable.refineCore.tableQuery.refetch();
+            invalidate({ resource: "items_inventory_all", invalidates: ["list"] });
+            invalidate({ resource: "inventory_records", invalidates: ["list"] });
+            invalidate({ resource: "items", invalidates: ["list"] });
+        } catch (error) {
+            open?.({
+                type: "error",
+                message: "Delete failed",
+                description: getErrorMessage(error),
+            });
+        } finally {
+            setDeletingItemId(null);
+        }
+    }, [invalidate, itemTable.refineCore, itemToDelete, open, resolveItemId]);
 
     const handleManualRollover = useCallback(async () => {
         if (!isAdmin || isRolloverRunning) return;
@@ -1216,6 +1342,62 @@ const ItemList = () => {
                                 </span>
                             ) : (
                                 "Save Changes"
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <Dialog
+                open={deleteDialogOpen}
+                onOpenChange={(openState) => {
+                    setDeleteDialogOpen(openState);
+                    if (!openState) setItemToDelete(null);
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Delete Item</DialogTitle>
+                        <DialogDescription>
+                            This will permanently remove the item and its inventory records.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="rounded-md border p-3 text-sm text-muted-foreground">
+                        <p>
+                            Item Code:{" "}
+                            <span className="text-foreground">{itemToDelete?.item_code ?? "-"}</span>
+                        </p>
+                        <p>
+                            Description:{" "}
+                            <span className="text-foreground">{itemToDelete?.description ?? "-"}</span>
+                        </p>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setDeleteDialogOpen(false);
+                                setItemToDelete(null);
+                            }}
+                            disabled={Boolean(deletingItemId)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={() => void handleDeleteItem()}
+                            disabled={Boolean(deletingItemId) || !itemToDelete}
+                        >
+                            {deletingItemId ? (
+                                <span className="inline-flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Deleting
+                                </span>
+                            ) : (
+                                "Delete Item"
                             )}
                         </Button>
                     </DialogFooter>
