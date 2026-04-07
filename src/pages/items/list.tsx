@@ -1028,7 +1028,10 @@ const ItemList = () => {
                                 }
                             }}
                         >
-                        <DialogContent className="w-[calc(100vw-2rem)] max-h-[85vh] overflow-hidden sm:max-w-4xl p-4 sm:p-6">
+                        <DialogContent
+                                className="w-[calc(100vw-2rem)] max-h-[85vh] overflow-hidden sm:max-w-4xl p-4 sm:p-6"
+                                onOpenAutoFocus={(event) => event.preventDefault()}
+                            >
                                 <DialogHeader>
                                     <DialogTitle>Item History</DialogTitle>
                                     <DialogDescription>
