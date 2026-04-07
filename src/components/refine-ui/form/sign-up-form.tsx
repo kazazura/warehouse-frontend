@@ -97,8 +97,6 @@ export const SignUpForm = () => {
             go({ to: data.redirectTo, type: "replace" });
             return;
           }
-
-          go({ to: "/login", type: "replace" });
         },
         onError: (error) => {
           const message =
