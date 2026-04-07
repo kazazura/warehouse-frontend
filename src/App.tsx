@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Authenticated, Refine, useGetIdentity } from "@refinedev/core";
 
 import { RefineKbar, RefineKbarProvider } from "@refinedev/kbar";
@@ -8,7 +9,7 @@ import routerProvider, {
 	UnsavedChangesNotifier,
 } from "@refinedev/react-router";
 import { liveProvider } from "@refinedev/supabase";
-import { BrowserRouter, Outlet, Route, Routes } from "react-router";
+import { BrowserRouter, Outlet, Route, Routes, useLocation, useNavigate } from "react-router";
 import "./App.css";
 import { Toaster } from "./components/refine-ui/notification/toaster";
 import { useNotificationProvider } from "./components/refine-ui/notification/use-notification-provider";
@@ -48,9 +49,40 @@ const AdminRouteGuard = () => {
 	return <Outlet />;
 };
 
+const AuthRecoveryRedirect = () => {
+	const location = useLocation();
+	const navigate = useNavigate();
+
+	useEffect(() => {
+		const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
+		const searchParams = new URLSearchParams(location.search);
+		const recoveryType = hashParams.get("type") || searchParams.get("type");
+
+		if (recoveryType === "recovery" && location.pathname !== "/update-password") {
+			const suffix = location.hash || location.search;
+			navigate(`/update-password${suffix}`, { replace: true });
+		}
+	}, [location.hash, location.pathname, location.search, navigate]);
+
+	useEffect(() => {
+		const { data } = supabaseClient.auth.onAuthStateChange((event) => {
+			if (event === "PASSWORD_RECOVERY" && location.pathname !== "/update-password") {
+				navigate(`/update-password${location.hash || location.search}`, { replace: true });
+			}
+		});
+
+		return () => {
+			data.subscription.unsubscribe();
+		};
+	}, [location.hash, location.pathname, location.search, navigate]);
+
+	return null;
+};
+
 function App() {
 	return (
 		<BrowserRouter>
+			<AuthRecoveryRedirect />
 			<RefineKbarProvider>
 				<ThemeProvider>
 					<Refine
