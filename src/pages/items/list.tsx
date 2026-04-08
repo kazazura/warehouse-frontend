@@ -814,8 +814,19 @@ const ItemList = () => {
             const { error: inventoryError } = await supabaseClient
                 .from("inventory_records")
                 .delete()
-                .or(`item_id.eq.${resolvedId},inventory_item_id.eq.${resolvedId}`);
-            if (inventoryError) throw inventoryError;
+                .eq("item_id", resolvedId);
+            if (inventoryError) {
+                const message = inventoryError.message?.toLowerCase() ?? "";
+                if (message.includes("inventory_item_id")) {
+                    const { error: fallbackError } = await supabaseClient
+                        .from("inventory_records")
+                        .delete()
+                        .eq("inventory_item_id", resolvedId);
+                    if (fallbackError) throw fallbackError;
+                } else {
+                    throw inventoryError;
+                }
+            }
 
             const { error: itemError } = await supabaseClient
                 .from("items")
