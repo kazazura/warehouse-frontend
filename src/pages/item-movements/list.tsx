@@ -5,7 +5,6 @@ import { DataTable } from "@/components/refine-ui/data-table/data-table";
 import { DataTableSorter } from "@/components/refine-ui/data-table/data-table-sorter";
 import { DataTableFilterCombobox } from "@/components/refine-ui/data-table/data-table-filter";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -67,7 +66,6 @@ type UserRow = {
 const ItemMovementListPage = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-    const [transactionType, setTransactionType] = useState("mct");
     const [selectedMct, setSelectedMct] = useState<MctRow | null>(null);
     const [detailOpen, setDetailOpen] = useState(false);
     const [rollbackOpen, setRollbackOpen] = useState(false);
@@ -463,23 +461,13 @@ const ItemMovementListPage = () => {
 
     return (
         <ListView>
-            <ListViewHeader title="Issue/Return" />
+            <ListViewHeader title="MCT" />
 
             <div className="grid gap-6 min-w-0">
                 <div className="intro-row">
-                    <div className="w-full sm:w-[240px]">
-                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            Transaction Type
-                        </p>
-                        <Select value={transactionType} onValueChange={setTransactionType}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="mct">MCT</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Manage material charge tickets, review details, and create new MCT entries.
+                    </p>
                     <div className="actions-row">
                         <div className="search-field">
                             <Search className="search-icon" />
@@ -495,12 +483,12 @@ const ItemMovementListPage = () => {
                             type="button"
                             variant="outline"
                             className="font-semibold"
-                            onClick={() => navigate("/issue-return/history")}
+                            onClick={() => navigate("/mct/history")}
                         >
                             <History className="h-4 w-4" />
                             History
                         </Button>
-                        <CreateButton resource="issue_return">
+                        <CreateButton resource="mct">
                             <div className="flex items-center gap-2 font-semibold">
                                 <Plus className="h-4 w-4" />
                                 <span>MCT</span>
