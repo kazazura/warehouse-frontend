@@ -21,6 +21,10 @@ export function Breadcrumb() {
   const { breadcrumbs } = useBreadcrumb();
   const { resources } = useResourceParams();
   const rootRouteResource = matchResourceFromRoute("/", resources);
+  const rootHref = rootRouteResource?.matchedRoute ?? "/";
+  const rootIcon = rootRouteResource?.resource?.meta?.icon ?? (
+    <Home className="h-4 w-4" />
+  );
 
   const breadCrumbItems = useMemo(() => {
     const list: {
@@ -31,13 +35,9 @@ export function Breadcrumb() {
 
     list.push({
       key: "breadcrumb-item-home",
-      href: rootRouteResource.matchedRoute ?? "/",
+      href: rootHref,
       Component: (
-        <Link to={rootRouteResource.matchedRoute ?? "/"}>
-          {rootRouteResource?.resource?.meta?.icon ?? (
-            <Home className="h-4 w-4" />
-          )}
-        </Link>
+        <Link to={rootHref}>{rootIcon}</Link>
       ),
     });
 
@@ -50,7 +50,7 @@ export function Breadcrumb() {
     }
 
     return list;
-  }, [breadcrumbs, Link, rootRouteResource]);
+  }, [breadcrumbs, Link, rootHref, rootIcon]);
 
   return (
     <ShadcnBreadcrumb>
