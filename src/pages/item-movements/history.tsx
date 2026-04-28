@@ -380,7 +380,7 @@ const ItemMovementHistoryPage = () => {
                                 <BreadcrumbSeparator />
                                 <BreadcrumbItem>
                                     <BreadcrumbLink asChild>
-                                        <Link to="/issue-return">Issue/Return</Link>
+                                        <Link to="/mct">MCT</Link>
                                     </BreadcrumbLink>
                                 </BreadcrumbItem>
                                 <BreadcrumbSeparator />
@@ -393,7 +393,7 @@ const ItemMovementHistoryPage = () => {
                     <Separator className="absolute left-0 right-0 z-[1]" />
                 </div>
                 <div className="flex justify-between gap-4">
-                    <h2 className="text-2xl font-bold">Issue/Return History</h2>
+                    <h2 className="text-2xl font-bold">MCT History</h2>
                 </div>
             </div>
 
@@ -413,8 +413,8 @@ const ItemMovementHistoryPage = () => {
                                 onChange={(event) => setSearchQuery(event.target.value)}
                             />
                         </div>
-                        <Button type="button" variant="outline" onClick={() => navigate("/issue-return")}>
-                            Back to Issue/Return
+                        <Button type="button" variant="outline" onClick={() => navigate("/mct")}>
+                            Back to MCT
                         </Button>
                     </div>
                 </div>
