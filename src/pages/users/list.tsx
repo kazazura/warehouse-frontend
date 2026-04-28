@@ -1,8 +1,7 @@
 import { ListView, ListViewHeader } from "@/components/refine-ui/views/list-view";
-import { Loader2, Pencil, Plus, Search, ShieldCheck, Trash, User as UserIcon } from "lucide-react";
+import { Loader2, Pencil, Search, ShieldCheck, Trash, User as UserIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CreateButton } from "@/components/refine-ui/buttons/create";
 import { useTable } from "@refinedev/react-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/refine-ui/data-table/data-table";
@@ -453,14 +452,6 @@ const UserList = () => {
 							/>
 						</div>
 
-						<div className="flex gap-2 w-full sm:w-auto">
-							<CreateButton>
-								<div className="flex items-center gap-2 font-semibold">
-									<Plus className="w-4 h-4" />
-									<span>Add User</span>
-								</div>
-							</CreateButton>
-						</div>
 					</div>
 				</div>
 				<div className="min-w-0">
