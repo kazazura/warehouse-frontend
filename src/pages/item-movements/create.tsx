@@ -712,7 +712,7 @@ const IssueReturnCreatePage = () => {
             invalidate({ resource: "mcts", invalidates: ["list"] });
             invalidate({ resource: "mct_items", invalidates: ["list"] });
 
-            go({ to: "/issue-return", type: "replace" });
+            go({ to: "/mct", type: "replace" });
         } catch (error) {
             const description = error instanceof Error ? error.message : "Unable to save MCT.";
             setValidationErrors([description]);
@@ -760,7 +760,7 @@ const IssueReturnCreatePage = () => {
             invalidate({ resource: "mcts", invalidates: ["list"] });
             invalidate({ resource: "mct_items", invalidates: ["list"] });
 
-            go({ to: "/issue-return", type: "replace" });
+            go({ to: "/mct", type: "replace" });
         } catch (error) {
             const description = error instanceof Error ? error.message : "Unable to save MCT.";
             setValidationErrors([description]);
@@ -994,7 +994,7 @@ const IssueReturnCreatePage = () => {
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    onClick={() => go({ to: "/issue-return", type: "replace" })}
+                                    onClick={() => go({ to: "/mct", type: "replace" })}
                                     disabled={isSubmitting}
                                 >
                                     Cancel
