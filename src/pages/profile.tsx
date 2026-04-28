@@ -123,7 +123,6 @@ const ProfilePage = () => {
 			dashboard: "Dashboard",
 			items: "Inventory",
 			users: "Users",
-			reports: "Reports",
 			profile: "Profile",
 		};
 
