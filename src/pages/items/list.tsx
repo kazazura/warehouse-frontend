@@ -98,6 +98,48 @@ type ItemHistoryMctRowDb = Omit<ItemHistoryMctRow, "mcts"> & {
     mcts: MctHistoryHeader | MctHistoryHeader[] | null;
 };
 
+type EmergencyHistoryHeader = {
+    id: string;
+    emergency_date: string | null;
+    requisitioner: string | null;
+    rel_number: string | null;
+    purpose: string | null;
+    created_at: string | null;
+    created_by: string | null;
+    status?: string | null;
+    rolled_back_at?: string | null;
+    rolled_back_by?: string | null;
+};
+
+type ItemHistoryEmergencyRow = {
+    id: string;
+    emergency_id: string;
+    item_id: string | null;
+    item_code: string | null;
+    qty: number | null;
+    unit_cost: number | null;
+    total_cost: number | null;
+    c2: number | null;
+    deduct_from: string | null;
+    remarks: string | null;
+    created_at: string | null;
+    emergencies: EmergencyHistoryHeader | null;
+};
+
+type ItemHistoryEmergencyRowDb = Omit<ItemHistoryEmergencyRow, "emergencies"> & {
+    emergencies: EmergencyHistoryHeader | EmergencyHistoryHeader[] | null;
+};
+
+type ItemHistoryChangeEntry = {
+    key: string;
+    transactionType: "MCT" | "Emergency";
+    label: string;
+    delta: number;
+    date: string | null | undefined;
+    actor: string | null | undefined;
+    isRollback?: boolean;
+};
+
 
 const isUuidLike = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
@@ -226,6 +268,7 @@ const ItemList = () => {
     const [historyLoading, setHistoryLoading] = useState(false);
     const [historyError, setHistoryError] = useState<string | null>(null);
     const [mctHistory, setMctHistory] = useState<ItemHistoryMctRow[]>([]);
+    const [emergencyHistory, setEmergencyHistory] = useState<ItemHistoryEmergencyRow[]>([]);
     const [historyUsers, setHistoryUsers] = useState<Record<string, UserRow>>({});
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<ItemInventoryRowWithId | null>(null);
@@ -498,27 +541,54 @@ const ItemList = () => {
             setHistoryLoading(true);
             setHistoryError(null);
             try {
-                const { data, error } = await supabaseClient
-                    .from("mct_items")
-                    .select(
-                        "id,item_id,item_code,qty,unit_cost,total_cost,c2,deduct_from,remarks,created_at,mcts(id,mct_rel_number,request_number,release_date,requisitioner,purpose,created_at,created_by,status,rolled_back_at,rolled_back_by)"
-                    )
-                    .eq("item_id", historyItemId)
-                    .order("created_at", { ascending: false });
+                const [mctResult, emergencyResult] = await Promise.all([
+                    supabaseClient
+                        .from("mct_items")
+                        .select(
+                            "id,item_id,item_code,qty,unit_cost,total_cost,c2,deduct_from,remarks,created_at,mcts(id,mct_rel_number,request_number,release_date,requisitioner,purpose,created_at,created_by,status,rolled_back_at,rolled_back_by)"
+                        )
+                        .eq("item_id", historyItemId)
+                        .order("created_at", { ascending: false }),
+                    supabaseClient
+                        .from("emergency_items")
+                        .select(
+                            "id,emergency_id,item_id,item_code,qty,unit_cost,total_cost,c2,deduct_from,remarks,created_at,emergencies(id,emergency_date,requisitioner,rel_number,purpose,created_at,created_by,status,rolled_back_at,rolled_back_by)"
+                        )
+                        .eq("item_id", historyItemId)
+                        .order("created_at", { ascending: false }),
+                ]);
 
-                if (error) throw error;
-                const rawRows: ItemHistoryMctRowDb[] = Array.isArray(data) ? (data as ItemHistoryMctRowDb[]) : [];
+                if (mctResult.error) throw mctResult.error;
+                if (emergencyResult.error) throw emergencyResult.error;
+                const rawRows: ItemHistoryMctRowDb[] = Array.isArray(mctResult.data)
+                    ? (mctResult.data as ItemHistoryMctRowDb[])
+                    : [];
                 const mctRows: ItemHistoryMctRow[] = rawRows.map((row) => ({
                     ...row,
                     mcts: Array.isArray(row.mcts) ? row.mcts[0] ?? null : row.mcts ?? null,
                 }));
+                const rawEmergencyRows: ItemHistoryEmergencyRowDb[] = Array.isArray(emergencyResult.data)
+                    ? (emergencyResult.data as ItemHistoryEmergencyRowDb[])
+                    : [];
+                const emergencyRows: ItemHistoryEmergencyRow[] = rawEmergencyRows.map((row) => ({
+                    ...row,
+                    emergencies: Array.isArray(row.emergencies)
+                        ? row.emergencies[0] ?? null
+                        : row.emergencies ?? null,
+                }));
 
                 if (!isMounted) return;
                 setMctHistory(mctRows);
+                setEmergencyHistory(emergencyRows);
 
                 const userIds = new Set<string>();
                 mctRows.forEach((row) => {
                     if (row.mcts?.created_by) userIds.add(row.mcts.created_by);
+                    if (row.mcts?.rolled_back_by) userIds.add(row.mcts.rolled_back_by);
+                });
+                emergencyRows.forEach((row) => {
+                    if (row.emergencies?.created_by) userIds.add(row.emergencies.created_by);
+                    if (row.emergencies?.rolled_back_by) userIds.add(row.emergencies.rolled_back_by);
                 });
 
                 if (userIds.size > 0) {
@@ -533,6 +603,8 @@ const ItemList = () => {
                         return acc;
                     }, {});
                     setHistoryUsers(mapped);
+                } else {
+                    setHistoryUsers({});
                 }
             } catch (error) {
                 if (!isMounted) return;
@@ -549,48 +621,73 @@ const ItemList = () => {
         };
     }, [historyItemId, historyOpen]);
 
-    const mctChangeEntries = useMemo(() => {
-        return mctHistory
-            .flatMap((row) => {
-                const entries: Array<{
-                    key: string;
-                    label: string;
-                    delta: number;
-                    date: string | null | undefined;
-                    actor: string | null | undefined;
-                    isRollback?: boolean;
-                }> = [];
-                const mctLabel = row.mcts?.mct_rel_number ?? "MCT";
-                const mctDate = row.mcts?.created_at ?? row.created_at;
-                if (row.qty != null) {
-                    const deductFromLabel = row.deduct_from === "buffer_stock" ? "Buffer Stock" : "Ending Qty";
-                    entries.push({
-                        key: `${row.id}-issue`,
-                        label: `${mctLabel} · Deducted from ${deductFromLabel}`,
-                        delta: -Math.abs(row.qty),
-                        date: mctDate,
-                        actor: row.mcts?.created_by,
-                    });
-                }
-                if (row.mcts?.status === "rolled_back" && row.mcts.rolled_back_at) {
-                    const deductFromLabel = row.deduct_from === "buffer_stock" ? "Buffer Stock" : "Ending Qty";
-                    entries.push({
-                        key: `${row.id}-rollback`,
-                        label: `${mctLabel} (Rollback) · Added back to ${deductFromLabel}`,
-                        delta: Math.abs(row.qty ?? 0),
-                        date: row.mcts.rolled_back_at,
-                        actor: row.mcts.rolled_back_by,
-                        isRollback: true,
-                    });
-                }
-                return entries;
-            })
+    const itemChangeEntries = useMemo(() => {
+        const mctEntries = mctHistory.flatMap((row) => {
+            const entries: ItemHistoryChangeEntry[] = [];
+            const mctLabel = row.mcts?.mct_rel_number ?? "MCT";
+            const mctDate = row.mcts?.created_at ?? row.created_at;
+            if (row.qty != null) {
+                const deductFromLabel = row.deduct_from === "buffer_stock" ? "Buffer Stock" : "Ending Qty";
+                entries.push({
+                    key: `${row.id}-issue`,
+                    transactionType: "MCT",
+                    label: `${mctLabel} · Deducted from ${deductFromLabel}`,
+                    delta: -Math.abs(row.qty),
+                    date: mctDate,
+                    actor: row.mcts?.created_by,
+                });
+            }
+            if (row.mcts?.status === "rolled_back" && row.mcts.rolled_back_at) {
+                const deductFromLabel = row.deduct_from === "buffer_stock" ? "Buffer Stock" : "Ending Qty";
+                entries.push({
+                    key: `${row.id}-rollback`,
+                    transactionType: "MCT",
+                    label: `${mctLabel} (Rollback) · Added back to ${deductFromLabel}`,
+                    delta: Math.abs(row.qty ?? 0),
+                    date: row.mcts.rolled_back_at,
+                    actor: row.mcts.rolled_back_by,
+                    isRollback: true,
+                });
+            }
+            return entries;
+        });
+        const emergencyEntries = emergencyHistory.flatMap((row) => {
+            const entries: ItemHistoryChangeEntry[] = [];
+            const emergencyLabel = row.emergencies?.rel_number ?? "Emergency";
+            const emergencyDate = row.emergencies?.created_at ?? row.created_at;
+            if (row.qty != null) {
+                const deductFromLabel = row.deduct_from === "buffer_stock" ? "Buffer Stock" : "Ending Qty";
+                entries.push({
+                    key: `${row.id}-emergency-issue`,
+                    transactionType: "Emergency",
+                    label: `${emergencyLabel} · Emergency deducted from ${deductFromLabel}`,
+                    delta: -Math.abs(row.qty),
+                    date: emergencyDate,
+                    actor: row.emergencies?.created_by,
+                });
+            }
+            if (row.emergencies?.status === "rolled_back" && row.emergencies.rolled_back_at) {
+                const deductFromLabel = row.deduct_from === "buffer_stock" ? "Buffer Stock" : "Ending Qty";
+                entries.push({
+                    key: `${row.id}-emergency-rollback`,
+                    transactionType: "Emergency",
+                    label: `${emergencyLabel} (Emergency Rollback) · Added back to ${deductFromLabel}`,
+                    delta: Math.abs(row.qty ?? 0),
+                    date: row.emergencies.rolled_back_at,
+                    actor: row.emergencies.rolled_back_by,
+                    isRollback: true,
+                });
+            }
+            return entries;
+        });
+
+        return [...mctEntries, ...emergencyEntries]
             .sort((a, b) => {
                 const dateA = a.date ? new Date(a.date).getTime() : 0;
                 const dateB = b.date ? new Date(b.date).getTime() : 0;
                 return dateB - dateA;
             });
-    }, [mctHistory]);
+    }, [emergencyHistory, mctHistory]);
 
 
     const itemTable = useTable<ItemInventoryRowWithId>({
@@ -1036,6 +1133,8 @@ const ItemList = () => {
                                     setHistoryItemCode("");
                                     setHistoryError(null);
                                     setMctHistory([]);
+                                    setEmergencyHistory([]);
+                                    setHistoryUsers({});
                                 }
                             }}
                         >
@@ -1046,7 +1145,7 @@ const ItemList = () => {
                                 <DialogHeader>
                                     <DialogTitle>Item History</DialogTitle>
                                     <DialogDescription>
-                                        Review material charge tickets and inventory edits for a selected item.
+                                        Review material charge tickets, emergency releases, and rollbacks for a selected item.
                                     </DialogDescription>
                                 </DialogHeader>
 
@@ -1062,7 +1161,7 @@ const ItemList = () => {
 
                                     <div className="grid gap-4">
                                         <div className="grid gap-2">
-                                            <p className="text-sm font-semibold text-foreground">MCT Changes</p>
+                                            <p className="text-sm font-semibold text-foreground">Inventory Changes</p>
                                             {historyLoading ? (
                                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -1070,12 +1169,12 @@ const ItemList = () => {
                                                 </div>
                                             ) : historyError ? (
                                                 <p className="text-sm text-destructive">{historyError}</p>
-                                            ) : mctChangeEntries.length === 0 ? (
-                                                <p className="text-sm text-muted-foreground">No MCT changes recorded.</p>
+                                            ) : itemChangeEntries.length === 0 ? (
+                                                <p className="text-sm text-muted-foreground">No inventory changes recorded.</p>
                                             ) : (
                                                 <div className="max-h-[40vh] overflow-auto rounded-lg border border-border/80 thin-scrollbar">
                                                     <ul className="divide-y divide-border/70 text-sm">
-                                                        {mctChangeEntries.map((entry, index) => (
+                                                        {itemChangeEntries.map((entry, index) => (
                                                             <li
                                                                 key={entry.key}
                                                                 className={`flex flex-col gap-1 p-3 ${index === 0 ? "bg-muted/20" : "bg-background"}`}
@@ -1093,8 +1192,16 @@ const ItemList = () => {
                                                                         {formatDelta(entry.delta)}
                                                                     </span>
                                                                 </div>
-                                                                <div className="text-xs text-muted-foreground">
-                                                                    {formatDate(entry.date)} · {getUserLabel(entry.actor)}
+                                                                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                                                    <span>{formatDate(entry.date)} · {getUserLabel(entry.actor)}</span>
+                                                                    <span
+                                                                        className={`inline-flex items-center rounded-full px-2 py-0.5 font-semibold ${entry.transactionType === "Emergency"
+                                                                            ? "bg-amber-50 text-amber-700"
+                                                                            : "bg-sky-50 text-sky-700"
+                                                                            }`}
+                                                                    >
+                                                                        {entry.transactionType}
+                                                                    </span>
                                                                 </div>
                                                             </li>
                                                         ))}
