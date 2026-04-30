@@ -25,6 +25,10 @@ alter table public.mcts
   check (status in ('active', 'rolled_back'));
 
 create index if not exists mcts_status_idx on public.mcts (status);
+drop index if exists public.mcts_mct_rel_number_uniq;
+create unique index if not exists mcts_mct_rel_number_uniq
+  on public.mcts (mct_rel_number)
+  where mct_rel_number is not null and mct_rel_number <> '' and status = 'active';
 
 create or replace function public.create_mct_transaction(
     p_header jsonb,
@@ -54,6 +58,7 @@ begin
             select 1
             from public.mcts
             where mct_rel_number = p_header->>'mct_rel_number'
+              and status = 'active'
         ) then
             raise exception 'duplicate_mct:%', p_header->>'mct_rel_number';
         end if;

@@ -36,9 +36,10 @@ create table if not exists public.emergency_items (
 create index if not exists emergency_items_emergency_id_idx on public.emergency_items(emergency_id);
 create index if not exists emergency_items_item_id_idx on public.emergency_items(item_id);
 create index if not exists emergencies_status_idx on public.emergencies(status);
+drop index if exists public.emergencies_rel_number_uniq;
 create unique index if not exists emergencies_rel_number_uniq
     on public.emergencies (rel_number)
-    where rel_number is not null and rel_number <> '';
+    where rel_number is not null and rel_number <> '' and status = 'active';
 
 alter table public.emergencies
     drop constraint if exists emergencies_status_check;
@@ -117,6 +118,7 @@ begin
             select 1
             from public.emergencies
             where rel_number = p_header->>'rel_number'
+              and status = 'active'
         ) then
             raise exception 'duplicate_emergency:%', p_header->>'rel_number';
         end if;
